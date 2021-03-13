@@ -44,14 +44,14 @@ Please visit the [website][home] for more details.
 Install required dependencies.
 
 On Debian and derivatives (like Ubuntu):
-* `sudo apt install -y build-essential meson libgtk-3-dev \
-  appstream-util xsltproc docbook-xsl libvte-2.91-dev libinput-dev \
+* `sudo apt install build-essential meson libgtk-3-dev xsltproc \
+  appstream-util docbook-xsl libvte-2.91-dev libinput-dev \
   libxkbcommon-dev libudev-dev gettext appstream`
 
 On Fedora and derivatives:
-* `sudo dnf install -y @c-development @development-tools \
-  gettext-devel gtk3-devel meson desktop-file-utils \
-  docbook-style-xsl uncrustify`
+* `sudo dnf install @c-development @development-tools vte291-devel \
+  gettext-devel gtk3-devel meson desktop-file-utils libinput-devel \
+  libxkbcommon-devel systemd-devel docbook-style-xsl libxslt`
 
 `meson` is used as the build system.  Run the following to build:
 * `meson build --prefix=/usr`
