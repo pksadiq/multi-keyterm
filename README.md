@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://sadiq.gitlab.io/multi-keyterm">
-    <img src="https://gitlab.com/sadiq/multi-keyterm/raw/master/data/icons/hicolor/256x256/apps/org.sadiqpk.multi-keyterm.png" width="150" />
+    <img src="https://gitlab.com/sadiq/multi-keyterm/raw/main/data/icons/hicolor/256x256/apps/org.sadiqpk.multi-keyterm.png" width="150" />
   </a>
   <br>
 
