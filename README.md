@@ -46,7 +46,7 @@ Install required dependencies.
 On Debian and derivatives (like Ubuntu):
 * `sudo apt install -y build-essential meson libgtk-3-dev \
   appstream-util xsltproc docbook-xsl libvte-2.91-dev libinput-dev \
-  libxkbcommon-dev libudev-dev`
+  libxkbcommon-dev libudev-dev gettext`
 
 On Fedora and derivatives:
 * `sudo dnf install -y @c-development @development-tools \
