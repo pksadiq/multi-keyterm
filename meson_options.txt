@@ -1,0 +1,5 @@
+option('man', type: 'boolean', value: true, description: 'Enable generating man pages')
+option('bash_completion', type: 'boolean', value: true, description: 'Enable bash completion')
+option('po', type: 'boolean', value: true, description: 'Enable translations')
+option('tests', type: 'boolean', value: true, description: 'Build tests')
+option('network_tests', type: 'boolean', value: false, description: 'Enable tests that requires network')

@@ -1,0 +1,8 @@
+# List of source files containing translatable strings.
+# Please keep this file sorted alphabetically.
+data/metainfo/org.sadiqpk.multi-keyterm.metainfo.xml.in
+data/org.sadiqpk.multi-keyterm.desktop.in
+data/org.sadiqpk.multi-keyterm.gschema.xml
+src/mkt-application.c
+src/resources/gtk/help-overlay.ui
+src/resources/ui/mkt-window.ui

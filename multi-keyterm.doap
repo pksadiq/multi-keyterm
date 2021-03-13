@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Project xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:foaf="http://xmlns.com/foaf/0.1/"
+         xmlns:gnome="http://api.gnome.org/doap-extensions#"
+         xmlns="http://usefulinc.com/ns/doap#">
+
+  <name xml:lang="en">Multi Key Term</name>
+  <shortdesc xml:lang="en">
+    Map different keyboards to different pseudo terminals
+  </shortdesc>
+  <description xml:lang="en">
+    Multi Key Term is a terminal emulator that helps you create one to one
+    maping between several keyboards and terminal sessions.  This can help
+    multiple users use the same system with only additional keyboards
+    required per user.
+  </description>
+  <homepage rdf:resource="https://sadiq.gitlab.io/multi-keyterm" />
+  <download-page rdf:resource="https://gitlab.com/sadiq/multi-keyterm/tags" />
+  <bug-database rdf:resource="https://gitlab.com/sadiq/multi-keyterm/issues" />
+
+  <category rdf:resource="http://api.gnome.org/doap-extensions#apps" />
+  <programming-language>C</programming-language>
+
+  <maintainer>
+    <foaf:Person>
+      <foaf:name>Mohammed Sadiq</foaf:name>
+      <foaf:mbox rdf:resource="mailto:sadiq@sadiqpk.org" />
+    </foaf:Person>
+  </maintainer>
+
+</Project>

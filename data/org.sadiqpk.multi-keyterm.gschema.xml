@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="multi-keyterm">
+  <schema id="org.sadiqpk.multi-keyterm" path="/org/sadiqpk/multi-keyterm/">
+
+    <key name="version" type="s">
+      <default>""</default>
+      <summary>Version of the application</summary>
+      <description>Version of the application</description>
+    </key>
+
+    <key name="use-system-font" type="b">
+      <default>true</default>
+      <summary>Use System Font</summary>
+      <description>Use System Font</description>
+    </key>
+
+    <key name="font" type="s">
+      <default>""</default>
+      <summary>Terminal Font</summary>
+      <description>Font to use for Terminal</description>
+    </key>
+
+  </schema>
+</schemalist>

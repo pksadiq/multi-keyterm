@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=Multi Key Term
+Comment=Muti Keyboard Terminal
+Exec=pkexec multi-keyterm
+# Translators: Do NOT translate. This is an icon file name.
+Icon=org.sadiqpk.multi-keyterm
+Terminal=false
+Type=Application
+StartupNotify=true
+Categories=Utility;GTK;GNOME;
+# Translators: Do NOT translate the semicolon. keywords should
+# also end with a semicolon
+Keywords=terminal;

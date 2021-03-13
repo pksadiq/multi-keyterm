@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <object class="GtkShortcutsWindow" id="help_overlay">
+    <property name="modal">1</property>
+
+    <child>
+      <object class="GtkShortcutsSection">
+        <property name="visible">1</property>
+        <property name="section-name">shortcuts</property>
+
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="visible">1</property>
+            <property name="title" translatable="yes" context="shortcut window">General</property>
+
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">1</property>
+                <property name="title" translatable="yes" context="shortcut window">Show Shortcuts</property>
+                <property name="accelerator">&lt;Primary&gt;F1</property>
+              </object>
+            </child>
+
+          </object> <!-- ./GtkShortcutsGroup -->
+        </child>
+
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="visible">1</property>
+            <property name="title" translatable="yes" context="shortcut window">Terminal</property>
+
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">1</property>
+                <property name="title" translatable="yes" context="shortcut window">Increase Font size</property>
+                <property name="accelerator">&lt;Primary&gt;plus</property>
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">1</property>
+                <property name="title" translatable="yes" context="shortcut window">Decrease Font size</property>
+                <property name="accelerator">&lt;Primary&gt;minus</property>
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">1</property>
+                <property name="title" translatable="yes" context="shortcut window">Reset Font size</property>
+                <property name="accelerator">&lt;Primary&gt;0</property>
+              </object>
+            </child>
+
+          </object> <!-- ./GtkShortcutsGroup -->
+        </child>
+
+      </object> <!-- ./GtkShortcutsSection -->
+    </child>
+
+  </object> <!-- ./GtkShortcutsWindow help_overlay -->
+</interface>

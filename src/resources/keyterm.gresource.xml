@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/org/sadiqpk/multi-keyterm">
+    <file preprocess="xml-stripblanks">gtk/help-overlay.ui</file>
+    <file preprocess="xml-stripblanks">ui/mkt-terminal.ui</file>
+    <file preprocess="xml-stripblanks">ui/mkt-window.ui</file>
+    <file preprocess="xml-stripblanks">ui/mkt-preferences-window.ui</file>
+    <file>css/gtk.css</file>
+  </gresource>
+</gresources>
+

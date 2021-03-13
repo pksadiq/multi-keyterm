@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template class="MktTerminal" parent="GtkFlowBoxChild">
+    <property name="can-focus">0</property>
+    <child>
+      <object class="GtkStack" id="main_stack">
+        <property name="visible">1</property>
+
+        <child>
+          <object class="GtkBox" id="empty_view">
+            <property name="visible">1</property>
+            <property name="halign">center</property>
+            <property name="valign">center</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">12</property>
+
+            <child>
+              <object class="GtkImage">
+                <property name="visible">1</property>
+                <property name="icon-name">utilities-terminal-symbolic</property>
+                <property name="pixel-size">128</property>
+                <style>
+                  <class name="dim-label"/>
+                </style>
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">1</property>
+                <property name="label" translatable="yes">Terminal closed</property>
+                <style>
+                  <class name="large-title"/>
+                </style>
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkLabel" id="empty_subtitle">
+                <property name="visible">1</property>
+              </object>
+            </child>
+
+            <!-- Close button -->
+            <child>
+              <object class="GtkButton">
+                <property name="visible">1</property>
+                <property name="halign">center</property>
+                <property name="can-focus">0</property>
+                <property name="focus-on-click">0</property>
+                <property name="label" translatable="yes">Close</property>
+                <signal name="clicked" handler="mkt_terminal_close" swapped="yes"/>
+                <style>
+                  <class name="destructive-action"/>
+                </style>
+              </object>
+            </child>
+
+          </object>
+        </child>
+
+        <child>
+          <object class="VteTerminal" id="terminal">
+            <property name="visible">1</property>
+            <property name="cursor-shape">ibeam</property>
+            <property name="can-focus">0</property>
+          </object>
+        </child>
+
+      </object>
+    </child>
+  </template>
+</interface>

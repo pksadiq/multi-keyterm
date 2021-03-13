@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop">
+  <id>org.sadiqpk.multi-keyterm</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0+</project_license>
+  <name>Multi Key Term</name>
+  <summary>Multiple Keyboard Terminals</summary>
+  <developer_name>Mohammed Sadiq</developer_name>
+  <launchable type="desktop-id">org.sadiqpk.multi-keyterm.desktop</launchable>
+
+  <description>
+    <p>
+      Multi Key Term is a terminal emulator that helps you create one
+      to one maping between several keyboards and terminal sessions.
+      This can help multiple users use the same system with only
+      additional keyboards required per user. The display will be
+      split to create multiple terminal sessions each associated
+      with different keyboard.
+    </p>
+  </description>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Main window</caption>
+      <image width="764" height="524">
+        https://gitlab.com/sadiq/multi-keyterm/raw/master/data/metainfo/01-window.png
+      </image>
+    </screenshot>
+  </screenshots>
+
+  <url type="homepage">https://sadiq.gitlab.io/multi-keyterm</url>
+  <url type="bugtracker">https://gitlab.com/sadiq/multi-keyterm/issues</url>
+  <url type="donation">https://liberapay.com/sadiq/donate</url>
+  <url type="help">https://gitlab.com/sadiq/multi-keyterm/wikis/home</url>
+  <project_group>GNOME</project_group>
+
+  <kudos>
+    <kudo>ModernToolkit</kudo>
+  </kudos>
+
+  <update_contact>sadiq@sadiqpk.org</update_contact>
+  <translation type="gettext">multi-keyterm</translation>
+
+  <!-- See https://hughsie.github.io/oars/ -->
+  <content_rating type="oars-1.1"/>
+  
+</component>
