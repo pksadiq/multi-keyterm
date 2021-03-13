@@ -1,10 +1,10 @@
 <div align="center">
-  <a href="https://sadiq.gitlab.io/multi-keyterm">
+  <a href="https://www.sadiqpk.org/projects/multi-keyterm.html">
     <img src="https://gitlab.com/sadiq/multi-keyterm/raw/main/data/icons/hicolor/256x256/apps/org.sadiqpk.multi-keyterm.png" width="150" />
   </a>
   <br>
 
-  <a href="https://sadiq.gitlab.io/multi-keyterm"><b>Multi Key Term</b></a>
+  <a href="https://www.sadiqpk.org/projects/multi-keyterm.html"><b>Multi Key Term</b></a>
   <br>
 
     Map different keyboards to different pseudo terminals
