@@ -30,9 +30,7 @@
 #endif
 
 #include <glib/gi18n.h>
-#include <gtk/gtk.h>
 
-#include "mkt-settings.h"
 #include "mkt-window.h"
 #include "mkt-application.h"
 #include "mkt-log.h"
@@ -46,12 +44,12 @@
 
 struct _MktApplication
 {
-  GtkApplication  parent_instance;
+  AdwApplication  parent_instance;
 
   MktSettings    *settings;
 };
 
-G_DEFINE_TYPE (MktApplication, mkt_application, GTK_TYPE_APPLICATION)
+G_DEFINE_TYPE (MktApplication, mkt_application, ADW_TYPE_APPLICATION)
 
 
 static gboolean
@@ -100,7 +98,6 @@ static void
 mkt_application_startup (GApplication *application)
 {
   MktApplication *self = (MktApplication *)application;
-  g_autoptr(GtkCssProvider) css_provider = NULL;
 
   g_info ("%s %s, git version: %s", PACKAGE_NAME,
           PACKAGE_VERSION, PACKAGE_VCS_VERSION);
@@ -110,14 +107,6 @@ mkt_application_startup (GApplication *application)
   g_set_application_name (_("Multi Key Term"));
   gtk_window_set_default_icon_name (PACKAGE_ID);
   self->settings = mkt_settings_new ();
-
-  css_provider = gtk_css_provider_new ();
-  gtk_css_provider_load_from_resource (css_provider,
-                                       "/org/sadiqpk/multi-keyterm/css/gtk.css");
-
-  gtk_style_context_add_provider_for_screen (gdk_screen_get_default (),
-                                             GTK_STYLE_PROVIDER (css_provider),
-                                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 }
 
 static void
@@ -169,6 +158,6 @@ mkt_application_new (void)
 {
   return g_object_new (MKT_TYPE_APPLICATION,
                        "application-id", PACKAGE_ID,
-                       "flags", G_APPLICATION_FLAGS_NONE,
+                       "flags", G_APPLICATION_DEFAULT_FLAGS,
                        NULL);
 }

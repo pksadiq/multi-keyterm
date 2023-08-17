@@ -28,6 +28,12 @@
 
 G_BEGIN_DECLS
 
+typedef struct _MktDeviceKey {
+  GdkModifierType modifier;
+  guint           keycode;
+  guint           keyval;
+} MktDeviceKey;
+
 #define MKT_TYPE_DEVICE (mkt_device_get_type ())
 G_DECLARE_FINAL_TYPE (MktDevice, mkt_device, MKT, DEVICE, GObject)
 

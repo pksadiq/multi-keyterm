@@ -1,7 +1,6 @@
-/* -*- mode: c; c-basic-offset: 2; indent-tabs-mode: nil; -*- */
 /* mkt-terminal.c
  *
- * Copyright 2021 Mohammed Sadiq <sadiq@sadiqpk.org>
+ * Copyright 2021, 2023 Mohammed Sadiq <sadiq@sadiqpk.org>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,11 +28,13 @@
 # include "version.h"
 #endif
 
+#include <ctype.h>
 #include <pwd.h>
 #include <vte/vte.h>
 #include <glib/gi18n.h>
 
 #include "mkt-controller.h"
+#include "mkt-device.h"
 #include "mkt-utils.h"
 #include "mkt-terminal.h"
 #include "mkt-log.h"
@@ -60,47 +61,65 @@ G_DEFINE_TYPE (MktTerminal, mkt_terminal, GTK_TYPE_FLOW_BOX_CHILD)
 
 
 static void
-device_event_cb (MktTerminal *self,
-                 GdkEvent    *event)
+device_key_pressed_cb (MktTerminal  *self,
+                       MktDeviceKey *key)
 {
-  GdkEventKey *key_event;
+  char buffer[6];
   double scale;
 
   g_assert (MKT_IS_TERMINAL (self));
 
-  key_event = (GdkEventKey *)event;
   scale = vte_terminal_get_font_scale (VTE_TERMINAL (self->terminal));
 
-  if (key_event->type != GDK_KEY_PRESS)
-    return;
+  if (((key->keyval == GDK_KEY_plus ||
+        key->keyval == GDK_KEY_equal) &&
+       key->modifier & GDK_CONTROL_MASK) ||
+      (key->keyval == GDK_KEY_KP_Add &&
+       key->modifier == GDK_CONTROL_MASK))
+    {
+      vte_terminal_set_font_scale (VTE_TERMINAL (self->terminal), scale + 0.05);
+    }
+  else if ((key->keyval == GDK_KEY_minus ||
+            key->keyval == GDK_KEY_KP_Subtract) &&
+           key->modifier == GDK_CONTROL_MASK)
+    {
+      vte_terminal_set_font_scale (VTE_TERMINAL (self->terminal), scale - 0.05);
+    }
+  else if (((key->keyval == GDK_KEY_0 ||
+             key->keyval == GDK_KEY_KP_0) &&
+            key->modifier == GDK_CONTROL_MASK))
+    {
+      vte_terminal_set_font_scale (VTE_TERMINAL (self->terminal), self->default_scale);
+    }
+  else if (key->modifier == GDK_CONTROL_MASK &&
+           toupper (key->keyval) >= 'A' && toupper (key->keyval) <= 'Z')
+    {
+      buffer[0] = toupper (key->keyval) - 'A' + 1;
+      buffer[1] = '\0';
+      vte_terminal_feed_child (VTE_TERMINAL (self->terminal), buffer, -1);
+    }
+  else if (key->keyval >= GDK_KEY_Left &&
+           key->keyval <= GDK_KEY_Down)
+    {
+      buffer[0] = '\033';
+      buffer[1] = '[';
+      if (key->keyval == GDK_KEY_Up)
+        buffer[2] = 'A';
+      else if (key->keyval == GDK_KEY_Down)
+        buffer[2] = 'B';
+      else if (key->keyval == GDK_KEY_Right)
+        buffer[2] = 'C';
+      else
+        buffer[2] = 'D';
 
-  if (((key_event->keyval == GDK_KEY_plus ||
-        key_event->keyval == GDK_KEY_equal) &&
-       key_event->state == (GDK_CONTROL_MASK | GDK_SHIFT_MASK)) ||
-      (key_event->keyval == GDK_KEY_KP_Add &&
-       key_event->state == GDK_CONTROL_MASK))
-    {
-      if (key_event->type == GDK_KEY_PRESS)
-        vte_terminal_set_font_scale (VTE_TERMINAL (self->terminal), scale + 0.05);
+      buffer[3] = '\0';
+      vte_terminal_feed_child (VTE_TERMINAL (self->terminal), buffer, -1);
     }
-  else if ((key_event->keyval == GDK_KEY_minus ||
-            key_event->keyval == GDK_KEY_KP_Subtract) &&
-            key_event->state == GDK_CONTROL_MASK)
+  else if (gdk_keyval_to_unicode (key->keyval) < 255)
     {
-      if (key_event->type == GDK_KEY_PRESS)
-        vte_terminal_set_font_scale (VTE_TERMINAL (self->terminal), scale - 0.05);
-    }
-  else if (((key_event->keyval == GDK_KEY_0 ||
-             key_event->keyval == GDK_KEY_KP_0) &&
-            key_event->state == GDK_CONTROL_MASK))
-    {
-      if (key_event->type == GDK_KEY_PRESS)
-        vte_terminal_set_font_scale (VTE_TERMINAL (self->terminal), self->default_scale);
-    }
-  else
-    {
-      key_event->window = g_object_ref (gtk_widget_get_window (self->terminal));
-      gtk_widget_event (self->terminal, event);
+      buffer[0] = gdk_keyval_to_unicode (key->keyval);
+      buffer[1] = '\0';
+      vte_terminal_feed_child (VTE_TERMINAL (self->terminal), buffer, -1);
     }
 }
 
@@ -158,7 +177,7 @@ terminal_start_bash (MktTerminal *self)
   /* Rough estimate of valid unix username, avoids cases like “$” */
   if (user)
     len = strspn (user, "abcdefghijklmnopqrstuvwxyz"
-                  "ABCDEFGHIJKLMNOPQRSTUVWXYZ_-01234567890");
+                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ_-01234567890");
 
   if (g_strcmp0 (g_getenv ("USER"), "root") == 0 &&
       user && len < 63 && len == strlen (user))
@@ -320,8 +339,8 @@ mkt_terminal_new (MktController *controller,
   self->settings = g_object_ref (settings);
   self->device = g_object_ref (device);
 
-  g_signal_connect_object (device, "event",
-                           G_CALLBACK (device_event_cb),
+  g_signal_connect_object (device, "key-pressed",
+                           G_CALLBACK (device_key_pressed_cb),
                            self, G_CONNECT_SWAPPED);
   g_signal_connect_object (device, "notify::enabled",
                            G_CALLBACK (device_enable_changed_cb),

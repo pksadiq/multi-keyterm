@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include <gtk/gtk.h>
+#include <adwaita.h>
 
 #include "mkt-settings.h"
 
@@ -33,7 +33,7 @@ G_BEGIN_DECLS
 #define MKT_APPLICATION_DEFAULT() ((MktApplication *)g_application_get_default ())
 #define MKT_TYPE_APPLICATION (mkt_application_get_type ())
 
-G_DECLARE_FINAL_TYPE (MktApplication, mkt_application, MKT, APPLICATION, GtkApplication)
+G_DECLARE_FINAL_TYPE (MktApplication, mkt_application, MKT, APPLICATION, AdwApplication)
 
 MktApplication *mkt_application_new (void);
 

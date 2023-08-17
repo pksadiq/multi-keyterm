@@ -41,27 +41,22 @@
 
 struct _MktWindow
 {
-  GtkApplicationWindow  parent_instance;
+  AdwApplicationWindow  parent_instance;
 
-  GtkWidget     *menu_button;
-  GtkWidget     *focus_revealer;
-  GtkWidget     *button_revealer;
+  GtkWidget            *menu_button;
+  GtkWidget            *focus_revealer;
+  GtkWidget            *button_revealer;
 
-  GtkWidget     *main_stack;
+  GtkWidget            *main_stack;
+  GtkWidget            *status_page;
+  GtkWidget            *terminal_grid;
 
-  GtkWidget     *empty_view;
-  GtkWidget     *empty_icon;
-  GtkWidget     *empty_title;
-  GtkWidget     *empty_subtitle;
-
-  GtkWidget     *terminal_grid;
-
-  MktSettings   *settings;
-  MktController *controller;
-  GtkEventController *key_controller;
+  MktSettings          *settings;
+  MktController        *controller;
+  GtkEventController   *key_controller;
 };
 
-G_DEFINE_TYPE (MktWindow, mkt_window, GTK_TYPE_APPLICATION_WINDOW)
+G_DEFINE_TYPE (MktWindow, mkt_window, ADW_TYPE_APPLICATION_WINDOW)
 
 
 static void
@@ -76,18 +71,11 @@ controller_failed_cb (MktWindow *self)
   if (!error)
     return;
 
-  g_object_set (self->empty_icon, "icon-name", "dialog-warning-symbolic", NULL);
-  gtk_label_set_text (GTK_LABEL (self->empty_title), error);
-  gtk_label_set_text (GTK_LABEL (self->empty_subtitle),
-                      "Try running as root, or add yourself "
-                      "to “input” user group");
-}
-
-static gboolean
-controller_key_pressed_cb (MktWindow *self)
-{
-  /* Swallow every key press */
-  return TRUE;
+  adw_status_page_set_icon_name (ADW_STATUS_PAGE (self->status_page), "dialog-warning-symbolic");
+  adw_status_page_set_title (ADW_STATUS_PAGE (self->status_page), error);
+  adw_status_page_set_description (ADW_STATUS_PAGE (self->status_page),
+                                   "Try running as root, or add yourself "
+                                   "to “input” user group");
 }
 
 GtkWidget *
@@ -112,7 +100,7 @@ device_list_changed_cb (MktWindow *self)
   if (n_items >= 1)
     child = self->terminal_grid;
   else
-    child = self->empty_view;
+    child = self->status_page;
 
   /* We use homogeneous spacing for children.  So if we have
    * only one child, half of the space is left free, so adjust
@@ -135,50 +123,24 @@ device_list_changed_cb (MktWindow *self)
 }
 
 static void
-mkt_window_fullscreen_clicked_cb (MktWindow *self,
-                                  GtkButton *button)
+mkt_window_fullscreen_clicked_cb (MktWindow *self)
 {
-  GdkWindow *window;
-  GdkWindowState state;
-
   g_assert (MKT_IS_WINDOW (self));
-  g_assert (GTK_IS_BUTTON (button));
 
-  window = gtk_widget_get_window (GTK_WIDGET (self));
-  state = gdk_window_get_state (window);
-  if (state & GDK_WINDOW_STATE_FULLSCREEN)
+  if (gtk_window_is_fullscreen (GTK_WINDOW (self)))
     gtk_window_unfullscreen (GTK_WINDOW (self));
   else
     gtk_window_fullscreen (GTK_WINDOW (self));
-}
-
-static gboolean
-mkt_window_ignore (MktWindow *self)
-{
-  gtk_widget_error_bell (GTK_WIDGET (self));
-
-  return TRUE;
 }
 
 static void
 mkt_window_show_preferences (MktWindow *self)
 {
   GtkWidget *preferences = NULL;
-  GtkApplication *application;
-  GList *windows;
 
-  application = GTK_APPLICATION (g_application_get_default ());
-  windows = gtk_application_get_windows (application);
+  g_assert (MKT_IS_WINDOW (self));
 
-  for (GList *window = windows; window; window = window->next)
-    if (MKT_IS_PREFERENCES_WINDOW (window->data))
-      {
-        preferences = window->data;
-        break;
-      }
-
-  if (!preferences)
-    preferences = mkt_preferences_window_new (GTK_WINDOW (self), self->settings);
+  preferences = mkt_preferences_window_new (GTK_WINDOW (self), self->settings);
 
   gtk_window_present (GTK_WINDOW (preferences));
 }
@@ -193,61 +155,41 @@ mkt_window_show_about (MktWindow *self)
 
   g_assert (MKT_IS_WINDOW (self));
 
-  /*
-   * If “program-name” is not set, it is retrieved from
-   * g_get_application_name().
-   */
-  gtk_show_about_dialog (GTK_WINDOW (self),
+  adw_show_about_window (GTK_WINDOW (self),
+                         "application-name", _("Multi Key Term"),
                          "website", "https://sadiq.gitlab.io/multi-keyterm",
                          "version", PACKAGE_VCS_VERSION,
-                         "copyright", "Copyright © 2021 Mohammed Sadiq",
+                         "copyright", "Copyright © 2023 Mohammed Sadiq",
                          "license-type", GTK_LICENSE_GPL_3_0,
-                         "authors", authors,
-                         "logo-icon-name", PACKAGE_ID,
+                         "developer-name", "Mohammed Sadiq",
+                         "developers", authors,
+                         "application-icon", PACKAGE_ID,
                          "translator-credits", _("translator-credits"),
                          NULL);
 }
 
-static gboolean
-mkt_window_focus_out_event (GtkWidget     *widget,
-                            GdkEventFocus *event)
+static void
+window_fullscreen_changed_cb (MktWindow *self)
 {
-  MktWindow *self = (MktWindow *)widget;
+  gboolean fullscreen;
 
-  MKT_TRACE_MSG ("Focus out event");
-  mkt_controller_ignore_keypress (self->controller, TRUE);
-  gtk_revealer_set_reveal_child (GTK_REVEALER (self->focus_revealer), TRUE);
+  g_assert (MKT_IS_WINDOW (self));
 
-  return GTK_WIDGET_CLASS (mkt_window_parent_class)->focus_out_event (widget, event);
+  fullscreen = gtk_window_is_fullscreen (GTK_WINDOW (self));
+  gtk_revealer_set_reveal_child (GTK_REVEALER (self->button_revealer), fullscreen);
 }
 
-static gboolean
-mkt_window_focus_in_event (GtkWidget	 *widget,
-                           GdkEventFocus *event)
+static void
+window_focus_changed_cb (MktWindow *self)
 {
-  MktWindow *self = (MktWindow *)widget;
+  gboolean has_focus;
 
-  MKT_TRACE_MSG ("Focus in event");
-  mkt_controller_ignore_keypress (self->controller, FALSE);
-  gtk_revealer_set_reveal_child (GTK_REVEALER (self->focus_revealer), FALSE);
+  g_assert (MKT_IS_WINDOW (self));
 
-  return GTK_WIDGET_CLASS (mkt_window_parent_class)->focus_in_event (widget, event);
-}
+  has_focus = gtk_window_is_active (GTK_WINDOW (self));
 
-static gboolean
-mkt_window_window_state_event (GtkWidget           *widget,
-                               GdkEventWindowState *event)
-{
-  MktWindow *self = (MktWindow *)widget;
-
-  if (event->changed_mask & GDK_WINDOW_STATE_FULLSCREEN)
-    {
-      gboolean reveal = !!(event->new_window_state & GDK_WINDOW_STATE_FULLSCREEN);
-
-      gtk_revealer_set_reveal_child (GTK_REVEALER (self->button_revealer), reveal);
-    }
-
-  return GTK_WIDGET_CLASS (mkt_window_parent_class)->window_state_event (widget, event);
+  mkt_controller_ignore_keypress (self->controller, !has_focus);
+  gtk_revealer_set_reveal_child (GTK_REVEALER (self->focus_revealer), !has_focus);
 }
 
 static void
@@ -269,10 +211,6 @@ mkt_window_class_init (MktWindowClass *klass)
 
   object_class->finalize = mkt_window_finalize;
 
-  widget_class->focus_in_event = mkt_window_focus_in_event;
-  widget_class->focus_out_event = mkt_window_focus_out_event;
-  widget_class->window_state_event = mkt_window_window_state_event;
-
   gtk_widget_class_set_template_from_resource (widget_class,
                                                "/org/sadiqpk/multi-keyterm/"
                                                "ui/mkt-window.ui");
@@ -282,16 +220,12 @@ mkt_window_class_init (MktWindowClass *klass)
   gtk_widget_class_bind_template_child (widget_class, MktWindow, button_revealer);
 
   gtk_widget_class_bind_template_child (widget_class, MktWindow, main_stack);
-
-  gtk_widget_class_bind_template_child (widget_class, MktWindow, empty_view);
-  gtk_widget_class_bind_template_child (widget_class, MktWindow, empty_icon);
-  gtk_widget_class_bind_template_child (widget_class, MktWindow, empty_title);
-  gtk_widget_class_bind_template_child (widget_class, MktWindow, empty_subtitle);
-
+  gtk_widget_class_bind_template_child (widget_class, MktWindow, status_page);
   gtk_widget_class_bind_template_child (widget_class, MktWindow, terminal_grid);
 
+  gtk_widget_class_bind_template_callback (widget_class, window_focus_changed_cb);
+  gtk_widget_class_bind_template_callback (widget_class, window_fullscreen_changed_cb);
   gtk_widget_class_bind_template_callback (widget_class, mkt_window_fullscreen_clicked_cb);
-  gtk_widget_class_bind_template_callback (widget_class, mkt_window_ignore);
   gtk_widget_class_bind_template_callback (widget_class, mkt_window_show_preferences);
   gtk_widget_class_bind_template_callback (widget_class, mkt_window_show_about);
 }
@@ -299,21 +233,19 @@ mkt_window_class_init (MktWindowClass *klass)
 static void
 mkt_window_init (MktWindow *self)
 {
+  AdwStyleManager *style_manager;
   GListModel *device_list;
 
   gtk_widget_init_template (GTK_WIDGET (self));
-  gtk_window_maximize (GTK_WINDOW (self));
+
+  style_manager = adw_style_manager_get_default ();
+  adw_style_manager_set_color_scheme (style_manager, ADW_COLOR_SCHEME_FORCE_DARK);
 
   self->controller = mkt_controller_new ();
   g_signal_connect_object (self->controller, "notify::failed",
                            G_CALLBACK (controller_failed_cb),
                            self, G_CONNECT_SWAPPED);
   controller_failed_cb (self);
-
-  self->key_controller = gtk_event_controller_key_new (GTK_WIDGET (self));
-  g_signal_connect_object (self->key_controller, "key-pressed",
-                           G_CALLBACK (controller_key_pressed_cb), self,
-                           G_CONNECT_SWAPPED);
 
   device_list = mkt_controller_get_device_list (self->controller);
   gtk_flow_box_bind_model (GTK_FLOW_BOX (self->terminal_grid),
@@ -339,6 +271,7 @@ mkt_window_new (GtkApplication *application,
                        "application", application,
                        NULL);
   self->settings = g_object_ref (settings);
+  gtk_window_maximize (GTK_WINDOW (self));
 
   return GTK_WIDGET (self);
 }

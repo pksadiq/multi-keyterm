@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include <gtk/gtk.h>
+#include <adwaita.h>
 
 #include "mkt-settings.h"
 
@@ -32,7 +32,7 @@ G_BEGIN_DECLS
 
 #define MKT_TYPE_PREFERENCES_WINDOW (mkt_preferences_window_get_type ())
 
-G_DECLARE_FINAL_TYPE (MktPreferencesWindow, mkt_preferences_window, MKT, PREFERENCES_WINDOW, GtkDialog)
+G_DECLARE_FINAL_TYPE (MktPreferencesWindow, mkt_preferences_window, MKT, PREFERENCES_WINDOW, AdwPreferencesWindow)
 
 GtkWidget *mkt_preferences_window_new (GtkWindow   *parent_window,
                                        MktSettings *settings);

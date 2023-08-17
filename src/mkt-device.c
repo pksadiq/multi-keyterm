@@ -1,7 +1,6 @@
-/* -*- mode: c; c-basic-offset: 2; indent-tabs-mode: nil; -*- */
 /* mkt-device.c
  *
- * Copyright 2021 Mohammed Sadiq <sadiq@sadiqpk.org>
+ * Copyright 2021, 2023 Mohammed Sadiq <sadiq@sadiqpk.org>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,7 +53,8 @@ struct _MktDevice
 G_DEFINE_TYPE (MktDevice, mkt_device, G_TYPE_OBJECT)
 
 enum {
-  EVENT,
+  KEY_PRESSED,
+  KEY_RELEASED,
   N_SIGNALS
 };
 
@@ -80,9 +80,10 @@ get_active_modifiers (MktDevice *self)
     modifiers |= GDK_CONTROL_MASK;
   if (MODE_IS_ACTIVE (self->xkb_state, XKB_MOD_NAME_SHIFT))
     modifiers |= GDK_SHIFT_MASK;
-  if (MODE_IS_ACTIVE (self->xkb_state, XKB_MOD_NAME_ALT) ||
-      MODE_IS_ACTIVE (self->xkb_state, "Meta"))
-    modifiers |= GDK_MOD1_MASK;
+  if (MODE_IS_ACTIVE (self->xkb_state, XKB_MOD_NAME_ALT))
+    modifiers |= GDK_ALT_MASK;
+  if (MODE_IS_ACTIVE (self->xkb_state, "Meta"))
+    modifiers |= GDK_META_MASK;
   if (MODE_IS_ACTIVE (self->xkb_state, "Super"))
     modifiers |= GDK_SUPER_MASK;
 
@@ -151,20 +152,23 @@ emit_event (MktDevice              *self,
             enum xkb_key_direction  direction,
             xkb_keysym_t            sym)
 {
-  GdkEventKey *key_event;
-  GdkEvent *event;
+  GdkModifierType modifier;
+  MktDeviceKey key = {0};
 
-  event = gdk_event_new (direction == XKB_KEY_DOWN ? GDK_KEY_PRESS : GDK_KEY_RELEASE);
-  key_event = (GdkEventKey *)event;
-  key_event->keyval = sym;
-  key_event->state = get_active_modifiers (self);
+  modifier = get_active_modifiers (self);
 
   /* Skip Alt-Tab */
-  if (key_event->keyval == GDK_KEY_Tab &&
-      key_event->state == GDK_MOD1_MASK)
+  if (modifier == GDK_ALT_MASK && sym == GDK_KEY_Tab)
     return;
 
-  g_signal_emit (self, signals[EVENT], 0, event);
+  key.keycode = sym;
+  key.keyval = sym;
+  key.modifier = modifier;
+
+  if (direction == XKB_KEY_DOWN)
+    g_signal_emit (self, signals[KEY_PRESSED], 0, &key);
+  else
+    g_signal_emit (self, signals[KEY_RELEASED], 0, &key);
 }
 
 
@@ -262,12 +266,18 @@ mkt_device_class_init (MktDeviceClass *klass)
 
   g_object_class_install_properties (object_class, N_PROPS, properties);
 
-  signals [EVENT] =
-    g_signal_new ("event",
+  signals [KEY_PRESSED] =
+    g_signal_new ("key-pressed",
                   G_TYPE_FROM_CLASS (klass),
                   G_SIGNAL_RUN_LAST,
                   0, NULL, NULL, NULL,
-                  G_TYPE_NONE, 1, GDK_TYPE_EVENT);
+                  G_TYPE_NONE, 1, G_TYPE_POINTER);
+  signals [KEY_RELEASED] =
+    g_signal_new ("key-released",
+                  G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST,
+                  0, NULL, NULL, NULL,
+                  G_TYPE_NONE, 1, G_TYPE_POINTER);
 }
 
 static void

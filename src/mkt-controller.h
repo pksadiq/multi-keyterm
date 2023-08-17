@@ -1,7 +1,6 @@
-/* -*- mode: c; c-basic-offset: 2; indent-tabs-mode: nil; -*- */
 /* mkt-controller.h
  *
- * Copyright 2021 Mohammed Sadiq <sadiq@sadiqpk.org>
+ * Copyright 2021, 2023 Mohammed Sadiq <sadiq@sadiqpk.org>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

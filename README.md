@@ -44,19 +44,19 @@ Please visit the [website][home] for more details.
 Install required dependencies.
 
 On Debian and derivatives (like Ubuntu):
-* `sudo apt install build-essential meson libgtk-3-dev xsltproc \
+* `sudo apt install build-essential meson libgtk-4-dev xsltproc \
   appstream-util docbook-xsl libvte-2.91-dev libinput-dev \
-  libxkbcommon-dev libudev-dev gettext appstream`
+  libxkbcommon-dev libudev-dev gettext appstream`libadwaita-1-dev
 
 On Fedora and derivatives:
 * `sudo dnf install @c-development @development-tools vte291-devel \
-  gettext-devel gtk3-devel meson desktop-file-utils libinput-devel \
+  gettext-devel gtk4-devel meson desktop-file-utils libinput-devel \
   libxkbcommon-devel systemd-devel docbook-style-xsl libxslt`
 
 `meson` is used as the build system.  Run the following to build:
 * `meson build --prefix=/usr`
 * `cd build && ninja`
-* `sudo ninja install # To install` 
+* `sudo ninja install # To install`
 
 Here `build` is a non-existing directory name.  You may use any
 name of your choice.
@@ -75,10 +75,8 @@ You can add `-v` multiple times to get verbose logs:
 ## Known Issues
 
 * Works only as root
-   - It’s better to not run GUI Applications as root.  But since
-     I do write GTK code a lot as a part of my job (at [Purism SPC][purism],
-     on the [Librem 5][librem5] Phone), it’s easier to use GTK in C than, say,
-     ncurses.  Help welcome if you can fix this, eg.: by using polkit.
+   - It’s better to not run GUI Applications as root.
+     Help welcome if you can fix this, eg.: by using polkit.
    - Gtk/mutter seems to create one logical keyboard device and
      map all keyboard events to the one created.  Also, wayland
      doesn’t seems require one to one maping of keyboard devices

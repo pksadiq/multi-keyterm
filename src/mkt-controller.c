@@ -1,7 +1,6 @@
-/* -*- mode: c; c-basic-offset: 2; indent-tabs-mode: nil; -*- */
 /* mkt-controller.c
  *
- * Copyright 2021 Mohammed Sadiq <sadiq@sadiqpk.org>
+ * Copyright 2021, 2023  Mohammed Sadiq <sadiq@sadiqpk.org>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -295,7 +294,8 @@ mkt_controller_finalize (GObject *object)
       struct xkb_context *context;
       struct xkb_rule_names names;
       GdkDisplay *display;
-      GdkKeymap *key_map;
+      GdkDevice *device;
+      GdkSeat *seat;
 
       names.rules = "evdev";
       names.model = "pc105";
@@ -307,14 +307,13 @@ mkt_controller_finalize (GObject *object)
       xkb_keymap = xkb_keymap_new_from_names (context, &names, 0);
       xkb_context_unref (context);
       display = gdk_display_get_default ();
-      key_map = gdk_keymap_get_for_display (display);
+      seat = gdk_display_get_default_seat (display);
+      device = gdk_seat_get_keyboard (seat);
 
-      if (gdk_keymap_get_caps_lock_state (key_map))
+      if (gdk_device_get_caps_lock_state (device))
         caps_lock = xkb_keymap_key_by_name (xkb_keymap, "CAPS");
-      if (gdk_keymap_get_num_lock_state (key_map))
+      if (gdk_device_get_num_lock_state (device))
         num_lock = xkb_keymap_key_by_name (xkb_keymap, "NMLK");
-      if (gdk_keymap_get_scroll_lock_state (key_map))
-        scroll_lock = xkb_keymap_key_by_name (xkb_keymap, "SCLK");
     }
 
   for (guint i = 0; i < n_items; i++)
