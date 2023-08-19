@@ -115,10 +115,12 @@ device_key_pressed_cb (MktTerminal  *self,
       buffer[3] = '\0';
       vte_terminal_feed_child (VTE_TERMINAL (self->terminal), buffer, -1);
     }
-  else if (gdk_keyval_to_unicode (key->keyval) < 255)
+  else
     {
-      buffer[0] = gdk_keyval_to_unicode (key->keyval);
-      buffer[1] = '\0';
+      guint len;
+
+      len = g_unichar_to_utf8 (gdk_keyval_to_unicode (key->keyval), buffer);
+      buffer[len] = '\0';
       vte_terminal_feed_child (VTE_TERMINAL (self->terminal), buffer, -1);
     }
 }
