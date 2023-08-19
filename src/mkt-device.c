@@ -413,7 +413,6 @@ mkt_device_feed_key (MktDevice *self,
                      guint32    key)       /* xkb_keycode_t */
 {
   struct xkb_keymap *xkb_keymap;
-  struct xkb_state *xkb_state;
   xkb_keysym_t sym_us, sym;
   GdkModifierType modifier;
 
@@ -426,15 +425,29 @@ mkt_device_feed_key (MktDevice *self,
   else
     sym = sym_us;
 
-  if (self->xkb_state)
-    xkb_state = self->xkb_state;
-  else
-    xkb_state = self->xkb_us_state;
-
   if (self->xkb_keymap)
     xkb_keymap = self->xkb_keymap;
   else
     xkb_keymap = self->xkb_us_keymap;
+
+  if (direction == XKB_KEY_DOWN)
+    {
+      xkb_state_update_key (self->xkb_us_state, key + 8, direction);
+      if (self->xkb_state)
+        xkb_state_update_key (self->xkb_state, key + 8, direction);
+      modifier = get_active_modifiers (self);
+    }
+  else
+    {
+      modifier = get_active_modifiers (self);
+      xkb_state_update_key (self->xkb_us_state, key + 8, direction);
+      if (self->xkb_state)
+        xkb_state_update_key (self->xkb_state, key + 8, direction);
+    }
+
+  /* Use US keycode if control key is active */
+  if (modifier & GDK_CONTROL_MASK)
+    sym = sym_us;
 
   g_clear_handle_id (&self->repeat_id, g_source_remove);
 
@@ -463,8 +476,6 @@ mkt_device_feed_key (MktDevice *self,
       if (!get_active_modifiers (self))
         mkt_device_set_enabled (self, TRUE);
     }
-
-  xkb_state_update_key (xkb_state, key + 8, direction);
 
   if (mkt_log_get_verbosity () > 3)
     show_key_log (self, sym, direction, FALSE);
