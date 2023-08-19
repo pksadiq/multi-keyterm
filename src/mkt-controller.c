@@ -38,7 +38,6 @@
 #include <xkbcommon/xkbcommon.h>
 
 #include "mkt-utils.h"
-#include "mkt-device.h"
 #include "mkt-controller.h"
 #include "mkt-log.h"
 
@@ -50,8 +49,8 @@ struct _MktController
   GObject          parent_instance;
 
   MktSettings     *settings;
-  GListStore      *device_list;
-  GListStore      *full_device_list;
+  GListStore      *keyboard_list;
+  GListStore      *full_keyboard_list;
   struct libinput *li;
   char            *error;
 
@@ -107,7 +106,7 @@ static void
 handle_device_removed_event (MktController         *self,
                              struct libinput_event *ev)
 {
-  MktDevice *device;
+  MktKeyboard *keyboard;
   struct libinput_device *dev;
   guint position;
 
@@ -115,20 +114,20 @@ handle_device_removed_event (MktController         *self,
   g_assert (ev);
 
   dev = libinput_event_get_device (ev);
-  device = libinput_device_get_user_data (dev);
+  keyboard = libinput_device_get_user_data (dev);
 
-  MKT_DEBUG_MSG ("Removed device: %p, libinput device: %p", device, dev);
+  MKT_DEBUG_MSG ("Removed keyboard: %p, libinput device: %p", keyboard, dev);
 
-  if (!device)
+  if (!keyboard)
     return;
 
   libinput_device_set_user_data (dev, NULL);
 
-  if (g_list_store_find (self->device_list, device, &position))
-    g_list_store_remove (self->device_list, position);
+  if (g_list_store_find (self->keyboard_list, keyboard, &position))
+    g_list_store_remove (self->keyboard_list, position);
 
-  if (g_list_store_find (self->full_device_list, device, &position))
-    g_list_store_remove (self->full_device_list, position);
+  if (g_list_store_find (self->full_keyboard_list, keyboard, &position))
+    g_list_store_remove (self->full_keyboard_list, position);
 }
 
 /* We update LEDs from all keyboards.  The system
@@ -141,18 +140,18 @@ static gboolean
 update_keyboard_leds (gpointer user_data)
 {
   g_autoptr(MktController) self = user_data;
-  GListModel *device_list;
+  GListModel *keyboard_list;
   guint n_items;
 
-  device_list = G_LIST_MODEL (self->full_device_list);
-  n_items = g_list_model_get_n_items (device_list);
+  keyboard_list = G_LIST_MODEL (self->full_keyboard_list);
+  n_items = g_list_model_get_n_items (keyboard_list);
 
   for (guint i = 0; i < n_items; i++)
     {
-      g_autoptr(MktDevice) device = NULL;
+      g_autoptr(MktKeyboard) keyboard = NULL;
 
-      device = g_list_model_get_item (device_list, i);
-      mkt_device_update_leds (device);
+      keyboard = g_list_model_get_item (keyboard_list, i);
+      mkt_keyboard_update_leds (keyboard);
     }
 
   return G_SOURCE_REMOVE;
@@ -164,7 +163,7 @@ handle_keyboard_event (MktController         *self,
 {
   struct libinput_event_keyboard *key_event;
   struct libinput_device *dev;
-  MktDevice *device;
+  MktKeyboard *keyboard;
   enum xkb_key_direction direction = XKB_KEY_DOWN;
   gboolean was_enabled;
   uint32_t key, sym;
@@ -181,30 +180,30 @@ handle_keyboard_event (MktController         *self,
 
   if (!libinput_device_get_user_data (dev))
     {
-      device = mkt_device_new (dev);
-      mkt_device_set_layout (device, mkt_settings_get_kbd_layout (self->settings));
-      g_list_store_append (self->full_device_list, device);
-      /* Update LED status as we sets Num Lock when device is added */
+      keyboard = mkt_keyboard_new (dev);
+      mkt_keyboard_set_layout (keyboard, mkt_settings_get_kbd_layout (self->settings));
+      g_list_store_append (self->full_keyboard_list, keyboard);
+      /* Update LED status as we sets Num Lock when keyboard is added */
       g_timeout_add (1, update_keyboard_leds, g_object_ref (self));
-      g_object_unref (device);
+      g_object_unref (keyboard);
     }
 
-  device = libinput_device_get_user_data (dev);
+  keyboard = libinput_device_get_user_data (dev);
 
-  was_enabled = mkt_device_get_enabled (device);
+  was_enabled = mkt_keyboard_get_enabled (keyboard);
   if (!was_enabled && direction == XKB_KEY_DOWN)
     {
       guint index = 0;
 
-      if (g_list_store_find (self->device_list, device, &index))
+      if (g_list_store_find (self->keyboard_list, keyboard, &index))
         index = index + XKB_KEY_1;
       else
-        index = XKB_KEY_1 + g_list_model_get_n_items (G_LIST_MODEL (self->device_list));
+        index = XKB_KEY_1 + g_list_model_get_n_items (G_LIST_MODEL (self->keyboard_list));
 
-      mkt_device_set_index (device, index);
+      mkt_keyboard_set_index (keyboard, index);
     }
 
-  sym = mkt_device_feed_key (device, direction, key);
+  sym = mkt_keyboard_feed_key (keyboard, direction, key);
 
   /*
    * When lock keys are pressed, the system may set LEDs for all keyboards.  We delay
@@ -216,12 +215,12 @@ handle_keyboard_event (MktController         *self,
     g_timeout_add (1, update_keyboard_leds, g_object_ref (self));
 
   if (!was_enabled &&
-      mkt_device_get_enabled (device) &&
-      !g_list_store_find (self->device_list, device, NULL))
+      mkt_keyboard_get_enabled (keyboard) &&
+      !g_list_store_find (self->keyboard_list, keyboard, NULL))
     {
-      MKT_DEBUG_MSG ("Added new device %p for libinput device %p (%s)", device, dev,
+      MKT_DEBUG_MSG ("Added new keyboard %p for libinput keyboard %p (%s)", keyboard, dev,
                      libinput_device_get_name (dev));
-      g_list_store_append (self->device_list, device);
+      g_list_store_append (self->keyboard_list, keyboard);
     }
 }
 
@@ -281,14 +280,14 @@ static void
 mkt_controller_finalize (GObject *object)
 {
   MktController *self = (MktController *)object;
-  GListModel *device_list;
+  GListModel *keyboard_list;
   guint n_items;
   xkb_keycode_t num_lock = 0, caps_lock = 0, scroll_lock = 0;
 
   MKT_TRACE_MSG ("disposing controller");
 
-  device_list = G_LIST_MODEL (self->full_device_list);
-  n_items = g_list_model_get_n_items (device_list);
+  keyboard_list = G_LIST_MODEL (self->full_keyboard_list);
+  n_items = g_list_model_get_n_items (keyboard_list);
 
   if (n_items)
     {
@@ -320,24 +319,24 @@ mkt_controller_finalize (GObject *object)
 
   for (guint i = 0; i < n_items; i++)
     {
-      g_autoptr(MktDevice) device = NULL;
+      g_autoptr(MktKeyboard) keyboard = NULL;
 
-      device = g_list_model_get_item (device_list, i);
-      mkt_device_reset (device, FALSE);
+      keyboard = g_list_model_get_item (keyboard_list, i);
+      mkt_keyboard_reset (keyboard, FALSE);
 
       if (caps_lock)
-        mkt_device_feed_key (device, XKB_KEY_DOWN, caps_lock);
+        mkt_keyboard_feed_key (keyboard, XKB_KEY_DOWN, caps_lock);
       if (num_lock)
-        mkt_device_feed_key (device, XKB_KEY_DOWN, num_lock);
+        mkt_keyboard_feed_key (keyboard, XKB_KEY_DOWN, num_lock);
       if (scroll_lock)
-        mkt_device_feed_key (device, XKB_KEY_DOWN, scroll_lock);
+        mkt_keyboard_feed_key (keyboard, XKB_KEY_DOWN, scroll_lock);
 
-      mkt_device_update_leds (device);
+      mkt_keyboard_update_leds (keyboard);
     }
 
   g_free (self->error);
-  g_clear_object (&self->device_list);
-  g_clear_object (&self->full_device_list);
+  g_clear_object (&self->keyboard_list);
+  g_clear_object (&self->full_keyboard_list);
   libinput_set_user_data (self->li, NULL);
   g_clear_pointer (&self->li, libinput_unref);
 
@@ -383,8 +382,8 @@ mkt_controller_init (MktController *self)
 
   libinput_set_user_data (self->li, self);
 
-  self->device_list = g_list_store_new (MKT_TYPE_DEVICE);
-  self->full_device_list = g_list_store_new (MKT_TYPE_DEVICE);
+  self->keyboard_list = g_list_store_new (MKT_TYPE_KEYBOARD);
+  self->full_keyboard_list = g_list_store_new (MKT_TYPE_KEYBOARD);
 
   c = g_io_channel_unix_new (libinput_get_fd (self->li));
   g_io_channel_set_encoding (c, NULL, NULL);
@@ -395,22 +394,22 @@ mkt_controller_init (MktController *self)
 static void
 controller_kbd_layout_changed_cb (MktController *self)
 {
-  GListModel *devices;
+  GListModel *keyboards;
   const char *layout;
   guint n_items;
 
   g_assert (MKT_IS_CONTROLLER (self));
 
   layout = mkt_settings_get_kbd_layout (self->settings);
-  devices = G_LIST_MODEL (self->full_device_list);
-  n_items = g_list_model_get_n_items (devices);
+  keyboards = G_LIST_MODEL (self->full_keyboard_list);
+  n_items = g_list_model_get_n_items (keyboards);
 
   for (guint i = 0; i < n_items; i++)
     {
-      g_autoptr(MktDevice) device = NULL;
+      g_autoptr(MktKeyboard) keyboard = NULL;
 
-      device = g_list_model_get_item (devices, i);
-      mkt_device_set_layout (device, layout);
+      keyboard = g_list_model_get_item (keyboards, i);
+      mkt_keyboard_set_layout (keyboard, layout);
     }
 }
 
@@ -433,21 +432,21 @@ mkt_controller_new (MktSettings *settings)
 }
 
 GListModel *
-mkt_controller_get_device_list (MktController *self)
+mkt_controller_get_keyboard_list (MktController *self)
 {
   g_return_val_if_fail (MKT_IS_CONTROLLER (self), NULL);
 
-  return G_LIST_MODEL (self->device_list);
+  return G_LIST_MODEL (self->keyboard_list);
 }
 
 void
-mkt_controller_remove_device (MktController *self,
-                              MktDevice     *device)
+mkt_controller_remove_keyboard (MktController *self,
+                                MktKeyboard   *keyboard)
 {
   guint position;
 
-  if (g_list_store_find (self->device_list, device, &position))
-    g_list_store_remove (self->device_list, position);
+  if (g_list_store_find (self->keyboard_list, keyboard, &position))
+    g_list_store_remove (self->keyboard_list, position);
 }
 
 void
@@ -466,15 +465,15 @@ mkt_controller_ignore_keypress (MktController *self,
 
   self->ignore_keypress = ignore;
 
-  list = G_LIST_MODEL (self->full_device_list);
+  list = G_LIST_MODEL (self->full_keyboard_list);
   n_items = g_list_model_get_n_items (list);
 
   for (guint i = 0; i < n_items; i++)
     {
-      g_autoptr(MktDevice) device = NULL;
+      g_autoptr(MktKeyboard) keyboard = NULL;
 
-      device = g_list_model_get_item (list, i);
-      mkt_device_reset (device, TRUE);
+      keyboard = g_list_model_get_item (list, i);
+      mkt_keyboard_reset (keyboard, TRUE);
     }
 }
 

@@ -25,7 +25,7 @@
 
 #include <gtk/gtk.h>
 
-#include "mkt-device.h"
+#include "mkt-keyboard.h"
 #include "mkt-settings.h"
 
 G_BEGIN_DECLS
@@ -33,12 +33,12 @@ G_BEGIN_DECLS
 #define MKT_TYPE_CONTROLLER (mkt_controller_get_type ())
 G_DECLARE_FINAL_TYPE (MktController, mkt_controller, MKT, CONTROLLER, GObject)
 
-MktController *mkt_controller_new             (MktSettings   *settings);
-GListModel    *mkt_controller_get_device_list (MktController *self);
-void           mkt_controller_remove_device   (MktController *self,
-                                               MktDevice     *device);
-void           mkt_controller_ignore_keypress (MktController *self,
-                                               gboolean       ignore);
-const char    *mkt_controller_get_error       (MktController *self);
+MktController *mkt_controller_new               (MktSettings   *settings);
+GListModel    *mkt_controller_get_keyboard_list (MktController *self);
+void           mkt_controller_remove_keyboard   (MktController *self,
+                                                 MktKeyboard   *keyboard);
+void           mkt_controller_ignore_keypress   (MktController *self,
+                                                 gboolean       ignore);
+const char    *mkt_controller_get_error         (MktController *self);
 
 G_END_DECLS

@@ -26,7 +26,7 @@
 
 #include <gtk/gtk.h>
 
-#include "mkt-device.h"
+#include "mkt-keyboard.h"
 #include "mkt-settings.h"
 #include "mkt-controller.h"
 
@@ -36,9 +36,9 @@ G_BEGIN_DECLS
 
 G_DECLARE_FINAL_TYPE (MktTerminal, mkt_terminal, MKT, TERMINAL, GtkFlowBoxChild)
 
-GtkWidget *mkt_terminal_new        (MktController *controller,
-                                    MktSettings   *settings,
-                                    MktDevice     *device);
-MktDevice *mkt_terminal_get_device (MktTerminal   *self);
+GtkWidget   *mkt_terminal_new          (MktController *controller,
+                                        MktSettings   *settings,
+                                        MktKeyboard   *keyboard);
+MktKeyboard *mkt_terminal_get_keyboard (MktTerminal   *self);
 
 G_END_DECLS

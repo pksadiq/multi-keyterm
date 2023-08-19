@@ -32,7 +32,7 @@
 #include <vte/vte.h>
 #include <glib/gi18n.h>
 
-#include "mkt-device.h"
+#include "mkt-keyboard.h"
 #include "mkt-controller.h"
 #include "mkt-terminal.h"
 #include "mkt-preferences-window.h"
@@ -79,23 +79,23 @@ controller_failed_cb (MktWindow *self)
 }
 
 GtkWidget *
-terminal_new (MktDevice *device,
-              MktWindow *self)
+terminal_new (MktKeyboard *keyboard,
+              MktWindow   *self)
 {
-  return mkt_terminal_new (self->controller, self->settings, device);
+  return mkt_terminal_new (self->controller, self->settings, keyboard);
 }
 
 static void
-device_list_changed_cb (MktWindow *self)
+keyboard_list_changed_cb (MktWindow *self)
 {
-  GListModel *device_list;
+  GListModel *keyboard_list;
   GtkWidget *child;
   guint n_items;
 
   g_assert (MKT_IS_WINDOW (self));
 
-  device_list = mkt_controller_get_device_list (self->controller);
-  n_items = g_list_model_get_n_items (device_list);
+  keyboard_list = mkt_controller_get_keyboard_list (self->controller);
+  n_items = g_list_model_get_n_items (keyboard_list);
 
   if (n_items >= 1)
     child = self->terminal_grid;
@@ -245,7 +245,7 @@ GtkWidget *
 mkt_window_new (GtkApplication *application,
                 MktSettings    *settings)
 {
-  GListModel *device_list;
+  GListModel *keyboard_list;
   MktWindow *self;
 
   g_assert (GTK_IS_APPLICATION (application));
@@ -263,15 +263,15 @@ mkt_window_new (GtkApplication *application,
                            self, G_CONNECT_SWAPPED);
   controller_failed_cb (self);
 
-  device_list = mkt_controller_get_device_list (self->controller);
+  keyboard_list = mkt_controller_get_keyboard_list (self->controller);
   gtk_flow_box_bind_model (GTK_FLOW_BOX (self->terminal_grid),
-                           device_list,
+                           keyboard_list,
                            (GtkFlowBoxCreateWidgetFunc)terminal_new,
                            g_object_ref (self), g_object_unref);
-  g_signal_connect_object (device_list, "items-changed",
-                           G_CALLBACK (device_list_changed_cb),
+  g_signal_connect_object (keyboard_list, "items-changed",
+                           G_CALLBACK (keyboard_list_changed_cb),
                            self, G_CONNECT_SWAPPED);
-  device_list_changed_cb (self);
+  keyboard_list_changed_cb (self);
 
   return GTK_WIDGET (self);
 }

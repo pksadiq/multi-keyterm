@@ -16,7 +16,7 @@ resources = gnome.compile_resources(
 libsrc = [
   'mkt-terminal.c',
   'mkt-controller.c',
-  'mkt-device.c',
+  'mkt-keyboard.c',
   'mkt-log.c',
   'mkt-utils.c',
   'mkt-settings.c',

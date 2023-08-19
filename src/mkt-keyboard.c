@@ -1,4 +1,4 @@
-/* mkt-device.c
+/* mkt-keyboard.c
  *
  * Copyright 2021, 2023 Mohammed Sadiq <sadiq@sadiqpk.org>
  *
@@ -21,7 +21,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-#define G_LOG_DOMAIN "mkt-device"
+#define G_LOG_DOMAIN "mkt-keyboard"
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
@@ -30,13 +30,13 @@
 #include <libinput.h>
 #include <xkbcommon/xkbcommon.h>
 
-#include "mkt-device.h"
+#include "mkt-keyboard.h"
 #include "mkt-log.h"
 
 #define INITIAL_REPEAT_TIMEOUT 250 /* ms */
 #define REPEAT_TIMEOUT         33  /* ms */
 
-struct _MktDevice
+struct _MktKeyboard
 {
   GObject  parent_instance;
 
@@ -52,7 +52,7 @@ struct _MktDevice
   gboolean     enabled;
 };
 
-G_DEFINE_TYPE (MktDevice, mkt_device, G_TYPE_OBJECT)
+G_DEFINE_TYPE (MktKeyboard, mkt_keyboard, G_TYPE_OBJECT)
 
 enum {
   KEY_PRESSED,
@@ -70,11 +70,11 @@ static guint signals[N_SIGNALS];
 static GParamSpec *properties[N_PROPS];
 
 static GdkModifierType
-get_active_modifiers (MktDevice *self)
+get_active_modifiers (MktKeyboard *self)
 {
   GdkModifierType modifiers = 0;
 
-  g_assert (MKT_IS_DEVICE (self));
+  g_assert (MKT_IS_KEYBOARD (self));
 
 #define MODE_IS_ACTIVE(state, name) xkb_state_mod_name_is_active (state, name, \
                                                                   XKB_STATE_MODS_EFFECTIVE)
@@ -95,18 +95,18 @@ get_active_modifiers (MktDevice *self)
 }
 
 static void
-mkt_device_set_lock (MktDevice  *self,
-                     const char *key)
+mkt_keyboard_set_lock (MktKeyboard *self,
+                       const char  *key)
 {
   xkb_keycode_t lock;
 
   lock = xkb_keymap_key_by_name (self->xkb_us_keymap, key);
-  mkt_device_feed_key (self, XKB_KEY_DOWN, lock);
-  mkt_device_feed_key (self, XKB_KEY_UP, lock);
+  mkt_keyboard_feed_key (self, XKB_KEY_DOWN, lock);
+  mkt_keyboard_feed_key (self, XKB_KEY_UP, lock);
 }
 
 static void
-show_key_log (MktDevice              *self,
+show_key_log (MktKeyboard            *self,
               xkb_keysym_t            sym,
               enum xkb_key_direction  direction,
               gboolean                is_repeat)
@@ -150,12 +150,12 @@ show_key_log (MktDevice              *self,
 }
 
 static void
-emit_event (MktDevice              *self,
+emit_event (MktKeyboard            *self,
             enum xkb_key_direction  direction,
             xkb_keysym_t            sym)
 {
   GdkModifierType modifier;
-  MktDeviceKey key = {0};
+  MktKeyboardKey key = {0};
 
   modifier = get_active_modifiers (self);
 
@@ -178,7 +178,7 @@ static gboolean
 repeat_key_cb (GTask    *task,
                gboolean  repeat)
 {
-  MktDevice *self;
+  MktKeyboard *self;
   xkb_keysym_t sym;
 
   g_assert (G_IS_TASK (task));
@@ -203,7 +203,7 @@ repeat_key (gpointer user_data)
 static gboolean
 initial_repeat_key (gpointer user_data)
 {
-  MktDevice *self;
+  MktKeyboard *self;
 
   self = g_task_get_source_object (user_data);
 
@@ -218,12 +218,12 @@ initial_repeat_key (gpointer user_data)
 }
 
 static void
-mkt_device_get_property (GObject    *object,
-                         guint       prop_id,
-                         GValue     *value,
-                         GParamSpec *pspec)
+mkt_keyboard_get_property (GObject    *object,
+                           guint       prop_id,
+                           GValue     *value,
+                           GParamSpec *pspec)
 {
-  MktDevice *self = (MktDevice *)object;
+  MktKeyboard *self = (MktKeyboard *)object;
 
   switch (prop_id)
     {
@@ -237,27 +237,27 @@ mkt_device_get_property (GObject    *object,
 }
 
 static void
-mkt_device_finalize (GObject *object)
+mkt_keyboard_finalize (GObject *object)
 {
-  MktDevice *self = (MktDevice *)object;
+  MktKeyboard *self = (MktKeyboard *)object;
 
-  MKT_TRACE_MSG ("Finalizing device: %p", self);
+  MKT_TRACE_MSG ("Finalizing keyboard: %p", self);
 
   if (self->device)
     libinput_device_set_user_data (self->device, NULL);
   g_clear_handle_id (&self->repeat_id, g_source_remove);
   g_clear_pointer (&self->device, libinput_device_unref);
 
-  G_OBJECT_CLASS (mkt_device_parent_class)->finalize (object);
+  G_OBJECT_CLASS (mkt_keyboard_parent_class)->finalize (object);
 }
 
 static void
-mkt_device_class_init (MktDeviceClass *klass)
+mkt_keyboard_class_init (MktKeyboardClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  object_class->get_property = mkt_device_get_property;
-  object_class->finalize = mkt_device_finalize;
+  object_class->get_property = mkt_keyboard_get_property;
+  object_class->finalize = mkt_keyboard_finalize;
 
   properties[PROP_ENABLED] =
     g_param_spec_boolean ("enabled",
@@ -283,7 +283,7 @@ mkt_device_class_init (MktDeviceClass *klass)
 }
 
 static void
-mkt_device_init (MktDevice *self)
+mkt_keyboard_init (MktKeyboard *self)
 {
   struct xkb_context *context;
   struct xkb_rule_names names;
@@ -302,30 +302,30 @@ mkt_device_init (MktDevice *self)
   xkb_context_unref (context);
 }
 
-MktDevice *
-mkt_device_new (gpointer libinput_device)
+MktKeyboard *
+mkt_keyboard_new (gpointer libinput_device)
 {
-  MktDevice *self;
+  MktKeyboard *self;
 
   g_return_val_if_fail (libinput_device, NULL);
 
-  self = g_object_new (MKT_TYPE_DEVICE, NULL);
-  mkt_device_set_device (self, libinput_device);
-  MKT_DEBUG_MSG ("Created new device %p for %p (%s)",
+  self = g_object_new (MKT_TYPE_KEYBOARD, NULL);
+  mkt_keyboard_set_device (self, libinput_device);
+  MKT_DEBUG_MSG ("Created new keyboard %p for %p (%s)",
                  self, self->device,
                  libinput_device_get_name (self->device));
 
   /* Enable Num Lock by default */
-  mkt_device_set_lock (self, "NMLK");
+  mkt_keyboard_set_lock (self, "NMLK");
 
   return self;
 }
 
 void
-mkt_device_set_device (MktDevice *self,
-                       gpointer   libinput_device)
+mkt_keyboard_set_device (MktKeyboard *self,
+                         gpointer     libinput_device)
 {
-  g_return_if_fail (MKT_IS_DEVICE (self));
+  g_return_if_fail (MKT_IS_KEYBOARD (self));
   g_return_if_fail (libinput_device);
 
   if (self->device == libinput_device)
@@ -341,62 +341,62 @@ mkt_device_set_device (MktDevice *self,
 }
 
 void
-mkt_device_reset (MktDevice *self,
-                  gboolean   keep_locks)
+mkt_keyboard_reset (MktKeyboard *self,
+                    gboolean     keep_locks)
 {
   struct xkb_state *xkb_state;
 
-  g_return_if_fail (MKT_IS_DEVICE (self));
+  g_return_if_fail (MKT_IS_KEYBOARD (self));
 
   g_clear_handle_id (&self->repeat_id, g_source_remove);
   xkb_state = g_steal_pointer (&self->xkb_us_state);
   self->xkb_us_state = xkb_state_new (self->xkb_us_keymap);
 
-  g_debug ("Resetting device %p, keep-locks: %d", self, !!keep_locks);
+  g_debug ("Resetting keyboard %p, keep-locks: %d", self, !!keep_locks);
 
   if (keep_locks)
     {
       if (xkb_state_led_name_is_active (xkb_state, XKB_LED_NAME_CAPS))
-        mkt_device_set_lock (self, "CAPS");
+        mkt_keyboard_set_lock (self, "CAPS");
 
       if (xkb_state_led_name_is_active (xkb_state, XKB_LED_NAME_NUM))
-        mkt_device_set_lock (self, "NMLK");
+        mkt_keyboard_set_lock (self, "NMLK");
 
       if (xkb_state_led_name_is_active (xkb_state, XKB_LED_NAME_SCROLL))
-        mkt_device_set_lock (self, "SCLK");
+        mkt_keyboard_set_lock (self, "SCLK");
     }
 
-  mkt_device_update_leds (self);
+  mkt_keyboard_update_leds (self);
   xkb_state_unref (xkb_state);
 }
 
 void
-mkt_device_set_index (MktDevice *self,
-                      guint32    index)
+mkt_keyboard_set_index (MktKeyboard *self,
+                        guint32      index)
 {
-  g_return_if_fail (MKT_IS_DEVICE (self));
+  g_return_if_fail (MKT_IS_KEYBOARD (self));
   g_return_if_fail (index >= XKB_KEY_0 && index <= XKB_KEY_9);
 
-  if (mkt_device_get_enabled (self))
+  if (mkt_keyboard_get_enabled (self))
     return;
 
-  MKT_TRACE_MSG ("setting device index: %p, index: %u", self, index);
+  MKT_TRACE_MSG ("setting keyboard index: %p, index: %u", self, index);
   self->index_sym = index;
 }
 
 gboolean
-mkt_device_get_enabled (MktDevice *self)
+mkt_keyboard_get_enabled (MktKeyboard *self)
 {
-  g_return_val_if_fail (MKT_IS_DEVICE (self), FALSE);
+  g_return_val_if_fail (MKT_IS_KEYBOARD (self), FALSE);
 
   return self->enabled;
 }
 
 void
-mkt_device_set_enabled (MktDevice *self,
-                        gboolean   enabled)
+mkt_keyboard_set_enabled (MktKeyboard *self,
+                          gboolean     enabled)
 {
-  g_return_if_fail (MKT_IS_DEVICE (self));
+  g_return_if_fail (MKT_IS_KEYBOARD (self));
 
   enabled = !!enabled;
 
@@ -408,15 +408,15 @@ mkt_device_set_enabled (MktDevice *self,
 }
 
 guint32
-mkt_device_feed_key (MktDevice *self,
-                     guint32    direction, /* enum xkb_key_direction  */
-                     guint32    key)       /* xkb_keycode_t */
+mkt_keyboard_feed_key (MktKeyboard *self,
+                       guint32      direction, /* enum xkb_key_direction  */
+                       guint32      key)       /* xkb_keycode_t */
 {
   struct xkb_keymap *xkb_keymap;
   xkb_keysym_t sym_us, sym;
   GdkModifierType modifier;
 
-  g_return_val_if_fail (MKT_IS_DEVICE (self), 0);
+  g_return_val_if_fail (MKT_IS_KEYBOARD (self), 0);
 
   sym_us = xkb_state_key_get_one_sym (self->xkb_us_state, key + 8);
 
@@ -451,7 +451,7 @@ mkt_device_feed_key (MktDevice *self,
 
   g_clear_handle_id (&self->repeat_id, g_source_remove);
 
-  if (mkt_device_get_enabled (self))
+  if (mkt_keyboard_get_enabled (self))
     {
       GTask *task;
 
@@ -469,12 +469,12 @@ mkt_device_feed_key (MktDevice *self,
     }
 
   if (direction == XKB_KEY_DOWN &&
-      !mkt_device_get_enabled (self) &&
+      !mkt_keyboard_get_enabled (self) &&
       (sym_us == self->index_sym||
        sym_us == self->index_sym - XKB_KEY_0 + XKB_KEY_KP_0))
     {
       if (!get_active_modifiers (self))
-        mkt_device_set_enabled (self, TRUE);
+        mkt_keyboard_set_enabled (self, TRUE);
     }
 
   if (mkt_log_get_verbosity () > 3)
@@ -484,7 +484,7 @@ mkt_device_feed_key (MktDevice *self,
 }
 
 void
-mkt_device_update_leds (MktDevice *self)
+mkt_keyboard_update_leds (MktKeyboard *self)
 {
   enum libinput_led leds = 0;
 
@@ -501,7 +501,7 @@ mkt_device_update_leds (MktDevice *self)
 
   libinput_device_led_update (self->device, leds);
 
-  MKT_TRACE_MSG ("Updated Device %p LEDs. Caps: %d, Num: %d, Scroll: %d",
+  MKT_TRACE_MSG ("Updated Keyboard %p LEDs. Caps: %d, Num: %d, Scroll: %d",
                  self,
                  !!(leds & LIBINPUT_LED_CAPS_LOCK),
                  !!(leds & LIBINPUT_LED_NUM_LOCK),
@@ -509,14 +509,14 @@ mkt_device_update_leds (MktDevice *self)
 }
 
 void
-mkt_device_set_layout (MktDevice  *self,
-                       const char *layout)
+mkt_keyboard_set_layout (MktKeyboard *self,
+                         const char  *layout)
 {
   g_auto(GStrv) strv = NULL;
   struct xkb_context *context;
   struct xkb_rule_names names;
 
-  g_return_if_fail (MKT_IS_DEVICE (self));
+  g_return_if_fail (MKT_IS_KEYBOARD (self));
   g_return_if_fail (layout && *layout);
 
   strv = g_strsplit (layout, "+", 2);

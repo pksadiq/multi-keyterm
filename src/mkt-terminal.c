@@ -34,7 +34,6 @@
 #include <glib/gi18n.h>
 
 #include "mkt-controller.h"
-#include "mkt-device.h"
 #include "mkt-utils.h"
 #include "mkt-terminal.h"
 #include "mkt-log.h"
@@ -50,7 +49,7 @@ struct _MktTerminal
 
   MktController   *controller;
   MktSettings     *settings;
-  MktDevice       *device;
+  MktKeyboard       *keyboard;
   guint            position;
 
   double           default_scale;
@@ -61,8 +60,8 @@ G_DEFINE_TYPE (MktTerminal, mkt_terminal, GTK_TYPE_FLOW_BOX_CHILD)
 
 
 static void
-device_key_pressed_cb (MktTerminal  *self,
-                       MktDeviceKey *key)
+keyboard_key_pressed_cb (MktTerminal  *self,
+                       MktKeyboardKey *key)
 {
   char buffer[6];
   double scale;
@@ -208,17 +207,17 @@ terminal_start_bash (MktTerminal *self)
 }
 
 static void
-device_enable_changed_cb (MktTerminal *self)
+keyboard_enable_changed_cb (MktTerminal *self)
 {
   GtkWidget *child;
 
   g_assert (MKT_IS_TERMINAL (self));
 
-  if (mkt_device_get_enabled (self->device))
+  if (mkt_keyboard_get_enabled (self->keyboard))
     terminal_start_bash (self);
 
-  if (self->device &&
-      mkt_device_get_enabled (self->device))
+  if (self->keyboard &&
+      mkt_keyboard_get_enabled (self->keyboard))
     child = self->terminal;
   else
     child = self->empty_view;
@@ -249,13 +248,13 @@ mkt_terminal_close (MktTerminal *self)
 {
   g_assert (MKT_IS_TERMINAL (self));
 
-  mkt_controller_remove_device (self->controller, self->device);
+  mkt_controller_remove_keyboard (self->controller, self->keyboard);
 }
 
 static void
 terminal_child_exited_cb (MktTerminal *self)
 {
-  GListModel *device_list;
+  GListModel *keyboard_list;
 
   g_assert (MKT_IS_TERMINAL (self));
 
@@ -264,11 +263,11 @@ terminal_child_exited_cb (MktTerminal *self)
 
   self->has_shell = FALSE;
   vte_terminal_reset (VTE_TERMINAL (self->terminal), TRUE, TRUE);
-  mkt_device_set_enabled (self->device, FALSE);
+  mkt_keyboard_set_enabled (self->keyboard, FALSE);
 
-  device_list = mkt_controller_get_device_list (self->controller);
+  keyboard_list = mkt_controller_get_keyboard_list (self->controller);
   /* If there is only one terminal, Let's just close */
-  if (g_list_model_get_n_items (device_list) == 1)
+  if (g_list_model_get_n_items (keyboard_list) == 1)
     {
       mkt_terminal_close (self);
     }
@@ -277,7 +276,7 @@ terminal_child_exited_cb (MktTerminal *self)
       g_autofree char *label = NULL;
       guint index = 0;
 
-      mkt_utils_get_item_position (device_list, self->device, &index);
+      mkt_utils_get_item_position (keyboard_list, self->keyboard, &index);
       label = g_strdup_printf ("Press “%d” to start the terminal", index + 1);
       gtk_label_set_text (GTK_LABEL (self->empty_subtitle), label);
     }
@@ -288,7 +287,7 @@ mkt_terminal_finalize (GObject *object)
 {
   MktTerminal *self = (MktTerminal *)object;
 
-  g_clear_object (&self->device);
+  g_clear_object (&self->keyboard);
   g_clear_object (&self->settings);
   g_clear_object (&self->controller);
 
@@ -328,38 +327,38 @@ mkt_terminal_init (MktTerminal *self)
 GtkWidget *
 mkt_terminal_new (MktController *controller,
                   MktSettings   *settings,
-                  MktDevice     *device)
+                  MktKeyboard     *keyboard)
 {
   MktTerminal *self;
 
   g_assert (MKT_IS_CONTROLLER (controller));
   g_assert (MKT_IS_SETTINGS (settings));
-  g_assert (MKT_IS_DEVICE (device));
+  g_assert (MKT_IS_KEYBOARD (keyboard));
 
   self = g_object_new (MKT_TYPE_TERMINAL, NULL);
   self->controller = g_object_ref (controller);
   self->settings = g_object_ref (settings);
-  self->device = g_object_ref (device);
+  self->keyboard = g_object_ref (keyboard);
 
-  g_signal_connect_object (device, "key-pressed",
-                           G_CALLBACK (device_key_pressed_cb),
+  g_signal_connect_object (keyboard, "key-pressed",
+                           G_CALLBACK (keyboard_key_pressed_cb),
                            self, G_CONNECT_SWAPPED);
-  g_signal_connect_object (device, "notify::enabled",
-                           G_CALLBACK (device_enable_changed_cb),
+  g_signal_connect_object (keyboard, "notify::enabled",
+                           G_CALLBACK (keyboard_enable_changed_cb),
                            self, G_CONNECT_SWAPPED);
   g_signal_connect_object (self->settings, "font-changed",
                            G_CALLBACK (terminal_font_changed_cb),
                            self, G_CONNECT_SWAPPED);
   terminal_font_changed_cb (self, settings);
-  device_enable_changed_cb (self);
+  keyboard_enable_changed_cb (self);
 
   return GTK_WIDGET (self);
 }
 
-MktDevice *
-mkt_terminal_get_device (MktTerminal *self)
+MktKeyboard *
+mkt_terminal_get_keyboard (MktTerminal *self)
 {
   g_return_val_if_fail (MKT_IS_TERMINAL (self), NULL);
 
-  return self->device;
+  return self->keyboard;
 }
