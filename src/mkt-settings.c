@@ -1,7 +1,6 @@
-/* -*- mode: c; c-basic-offset: 2; indent-tabs-mode: nil; -*- */
 /* mkt-settings.c
  *
- * Copyright 2021 Mohammed Sadiq <sadiq@sadiqpk.org>
+ * Copyright 2021, 2023 Mohammed Sadiq <sadiq@sadiqpk.org>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,8 +46,10 @@ struct _MktSettings
 
   GSettings *settings;
   GSettings *desktop_settings;
+  GSettings *input_settings;
 
   char      *font;
+  char      *keyboard_layout;
   gboolean   first_run;
   gboolean   use_system_font;
 };
@@ -58,10 +59,40 @@ G_DEFINE_TYPE (MktSettings, mkt_settings, G_TYPE_OBJECT)
 
 enum {
   FONT_CHANGED,
+  KBD_LAYOUT_CHANGED,
   N_SIGNALS
 };
 
 static guint signals[N_SIGNALS];
+
+static void
+settings_kbd_layout_changed_cb (MktSettings *self,
+                                char        *key)
+{
+  g_assert (MKT_IS_SETTINGS (self));
+
+  if (g_strcmp0 (key, "mru-sources") == 0)
+    {
+      g_autoptr(GVariant) value = NULL;
+
+      value = g_settings_get_value (self->input_settings, key);
+      if (g_variant_n_children (value) > 0)
+        {
+          const char *layout, *type;
+
+          g_variant_get_child (value, 0, "(&s&s)", &type, &layout);
+
+          if (g_strcmp0 (type, "xkb") == 0)
+            {
+              g_free (self->keyboard_layout);
+              self->keyboard_layout = g_strdup (layout);
+              g_debug ("Keyboard layout changed to '%s'", layout);
+
+              g_signal_emit (self, signals[KBD_LAYOUT_CHANGED], 0);
+            }
+        }
+    }
+}
 
 static void
 mkt_settings_dispose (GObject *object)
@@ -79,6 +110,7 @@ mkt_settings_dispose (GObject *object)
   g_clear_object (&self->settings);
   g_clear_object (&self->desktop_settings);
   g_clear_pointer (&self->font, g_free);
+  g_clear_pointer (&self->keyboard_layout, g_free);
 
   G_OBJECT_CLASS (mkt_settings_parent_class)->dispose (object);
 }
@@ -96,12 +128,19 @@ mkt_settings_class_init (MktSettingsClass *klass)
                   G_SIGNAL_RUN_LAST,
                   0, NULL, NULL, NULL,
                   G_TYPE_NONE, 0);
+
+  signals [KBD_LAYOUT_CHANGED] =
+    g_signal_new ("kbd-layout-changed",
+                  G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST,
+                  0, NULL, NULL, NULL,
+                  G_TYPE_NONE, 0);
 }
 
 static void
 mkt_settings_init (MktSettings *self)
 {
-  g_autoptr(GSettingsSchema) schema = NULL;
+  GSettingsSchema *schema = NULL;
   g_autofree char *version = NULL;
 
   self->settings = g_settings_new (PACKAGE_ID);
@@ -117,6 +156,24 @@ mkt_settings_init (MktSettings *self)
 
   if (schema)
     self->desktop_settings = g_settings_new_full (schema, NULL, NULL);
+
+  g_clear_pointer (&schema, g_settings_schema_unref);
+
+  schema = g_settings_schema_source_lookup (g_settings_schema_source_get_default (),
+                                            "org.gnome.desktop.input-sources", TRUE);
+
+  if (schema)
+    {
+      self->input_settings = g_settings_new_full (schema, NULL, NULL);
+      g_signal_connect_object (self->input_settings,
+                               "changed",
+                               G_CALLBACK (settings_kbd_layout_changed_cb),
+                               self,
+                               G_CONNECT_SWAPPED);
+      settings_kbd_layout_changed_cb (self, "mru-sources");
+    }
+
+  g_clear_pointer (&schema, g_settings_schema_unref);
 
   self->use_system_font = g_settings_get_boolean (self->settings, "use-system-font");
   if (self->use_system_font)
@@ -245,4 +302,15 @@ mkt_settings_set_font (MktSettings *self,
   g_settings_set_string (self->settings, "font", font);
 
   g_signal_emit (self, signals[FONT_CHANGED], 0);
+}
+
+const char *
+mkt_settings_get_kbd_layout (MktSettings *self)
+{
+  g_return_val_if_fail (MKT_IS_SETTINGS (self), NULL);
+
+  if (self->keyboard_layout)
+    return self->keyboard_layout;
+
+  return "us";
 }

@@ -1,7 +1,6 @@
-/* -*- mode: c; c-basic-offset: 2; indent-tabs-mode: nil; -*- */
 /* mkt-settings.h
  *
- * Copyright 2021 Mohammed Sadiq <sadiq@sadiqpk.org>
+ * Copyright 2021, 2023 Mohammed Sadiq <sadiq@sadiqpk.org>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,5 +41,6 @@ void         mkt_settings_set_use_system_font  (MktSettings *self,
 const char  *mkt_settings_get_font             (MktSettings *self);
 void         mkt_settings_set_font             (MktSettings *self,
                                                 const char  *font);
+const char  *mkt_settings_get_kbd_layout       (MktSettings *self);
 
 G_END_DECLS
