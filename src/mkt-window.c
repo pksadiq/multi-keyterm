@@ -234,14 +234,30 @@ static void
 mkt_window_init (MktWindow *self)
 {
   AdwStyleManager *style_manager;
-  GListModel *device_list;
 
   gtk_widget_init_template (GTK_WIDGET (self));
 
   style_manager = adw_style_manager_get_default ();
   adw_style_manager_set_color_scheme (style_manager, ADW_COLOR_SCHEME_FORCE_DARK);
+}
 
-  self->controller = mkt_controller_new ();
+GtkWidget *
+mkt_window_new (GtkApplication *application,
+                MktSettings    *settings)
+{
+  GListModel *device_list;
+  MktWindow *self;
+
+  g_assert (GTK_IS_APPLICATION (application));
+  g_assert (MKT_IS_SETTINGS (settings));
+
+  self = g_object_new (MKT_TYPE_WINDOW,
+                       "application", application,
+                       NULL);
+  self->settings = g_object_ref (settings);
+  gtk_window_maximize (GTK_WINDOW (self));
+
+  self->controller = mkt_controller_new (settings);
   g_signal_connect_object (self->controller, "notify::failed",
                            G_CALLBACK (controller_failed_cb),
                            self, G_CONNECT_SWAPPED);
@@ -256,22 +272,6 @@ mkt_window_init (MktWindow *self)
                            G_CALLBACK (device_list_changed_cb),
                            self, G_CONNECT_SWAPPED);
   device_list_changed_cb (self);
-}
-
-GtkWidget *
-mkt_window_new (GtkApplication *application,
-                MktSettings    *settings)
-{
-  MktWindow *self;
-
-  g_assert (GTK_IS_APPLICATION (application));
-  g_assert (MKT_IS_SETTINGS (settings));
-
-  self = g_object_new (MKT_TYPE_WINDOW,
-                       "application", application,
-                       NULL);
-  self->settings = g_object_ref (settings);
-  gtk_window_maximize (GTK_WINDOW (self));
 
   return GTK_WIDGET (self);
 }

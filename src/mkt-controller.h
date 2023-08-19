@@ -26,13 +26,14 @@
 #include <gtk/gtk.h>
 
 #include "mkt-device.h"
+#include "mkt-settings.h"
 
 G_BEGIN_DECLS
 
 #define MKT_TYPE_CONTROLLER (mkt_controller_get_type ())
 G_DECLARE_FINAL_TYPE (MktController, mkt_controller, MKT, CONTROLLER, GObject)
 
-MktController *mkt_controller_new             (void);
+MktController *mkt_controller_new             (MktSettings   *settings);
 GListModel    *mkt_controller_get_device_list (MktController *self);
 void           mkt_controller_remove_device   (MktController *self,
                                                MktDevice     *device);

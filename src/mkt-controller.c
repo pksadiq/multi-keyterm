@@ -49,6 +49,7 @@ struct _MktController
 {
   GObject          parent_instance;
 
+  MktSettings     *settings;
   GListStore      *device_list;
   GListStore      *full_device_list;
   struct libinput *li;
@@ -181,6 +182,7 @@ handle_keyboard_event (MktController         *self,
   if (!libinput_device_get_user_data (dev))
     {
       device = mkt_device_new (dev);
+      mkt_device_set_layout (device, mkt_settings_get_kbd_layout (self->settings));
       g_list_store_append (self->full_device_list, device);
       /* Update LED status as we sets Num Lock when device is added */
       g_timeout_add (1, update_keyboard_leds, g_object_ref (self));
@@ -390,10 +392,44 @@ mkt_controller_init (MktController *self)
   handle_event_libinput (NULL, 0, self->li);
 }
 
-MktController *
-mkt_controller_new (void)
+static void
+controller_kbd_layout_changed_cb (MktController *self)
 {
-  return g_object_new (MKT_TYPE_CONTROLLER, NULL);
+  GListModel *devices;
+  const char *layout;
+  guint n_items;
+
+  g_assert (MKT_IS_CONTROLLER (self));
+
+  layout = mkt_settings_get_kbd_layout (self->settings);
+  devices = G_LIST_MODEL (self->full_device_list);
+  n_items = g_list_model_get_n_items (devices);
+
+  for (guint i = 0; i < n_items; i++)
+    {
+      g_autoptr(MktDevice) device = NULL;
+
+      device = g_list_model_get_item (devices, i);
+      mkt_device_set_layout (device, layout);
+    }
+}
+
+MktController *
+mkt_controller_new (MktSettings *settings)
+{
+  MktController *self;
+
+  g_return_val_if_fail (MKT_IS_SETTINGS (settings), NULL);
+
+  self = g_object_new (MKT_TYPE_CONTROLLER, NULL);
+  g_set_object (&self->settings, settings);
+
+  g_signal_connect_object (self->settings,
+                           "kbd-layout-changed",
+                           G_CALLBACK (controller_kbd_layout_changed_cb),
+                           self, G_CONNECT_SWAPPED);
+
+  return self;
 }
 
 GListModel *
