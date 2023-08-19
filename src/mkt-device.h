@@ -38,6 +38,8 @@ typedef struct _MktDeviceKey {
 G_DECLARE_FINAL_TYPE (MktDevice, mkt_device, MKT, DEVICE, GObject)
 
 MktDevice *mkt_device_new         (gpointer   libinput_device);
+void       mkt_device_set_layout  (MktDevice  *self,
+                                   const char *layout);
 void       mkt_device_set_device  (MktDevice *self,
                                    gpointer   libinput_device);
 void       mkt_device_reset       (MktDevice *self,

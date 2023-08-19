@@ -41,6 +41,8 @@ struct _MktDevice
   GObject  parent_instance;
 
   struct libinput_device *device;
+  struct xkb_keymap      *xkb_us_keymap;
+  struct xkb_state       *xkb_us_state;
   struct xkb_keymap      *xkb_keymap;
   struct xkb_state       *xkb_state;
 
@@ -76,15 +78,15 @@ get_active_modifiers (MktDevice *self)
 
 #define MODE_IS_ACTIVE(state, name) xkb_state_mod_name_is_active (state, name, \
                                                                   XKB_STATE_MODS_EFFECTIVE)
-  if (MODE_IS_ACTIVE (self->xkb_state, XKB_MOD_NAME_CTRL))
+  if (MODE_IS_ACTIVE (self->xkb_us_state, XKB_MOD_NAME_CTRL))
     modifiers |= GDK_CONTROL_MASK;
-  if (MODE_IS_ACTIVE (self->xkb_state, XKB_MOD_NAME_SHIFT))
+  if (MODE_IS_ACTIVE (self->xkb_us_state, XKB_MOD_NAME_SHIFT))
     modifiers |= GDK_SHIFT_MASK;
-  if (MODE_IS_ACTIVE (self->xkb_state, XKB_MOD_NAME_ALT))
+  if (MODE_IS_ACTIVE (self->xkb_us_state, XKB_MOD_NAME_ALT))
     modifiers |= GDK_ALT_MASK;
-  if (MODE_IS_ACTIVE (self->xkb_state, "Meta"))
+  if (MODE_IS_ACTIVE (self->xkb_us_state, "Meta"))
     modifiers |= GDK_META_MASK;
-  if (MODE_IS_ACTIVE (self->xkb_state, "Super"))
+  if (MODE_IS_ACTIVE (self->xkb_us_state, "Super"))
     modifiers |= GDK_SUPER_MASK;
 
 #undef MODE_IS_ACTIVE
@@ -98,7 +100,7 @@ mkt_device_set_lock (MktDevice  *self,
 {
   xkb_keycode_t lock;
 
-  lock = xkb_keymap_key_by_name (self->xkb_keymap, key);
+  lock = xkb_keymap_key_by_name (self->xkb_us_keymap, key);
   mkt_device_feed_key (self, XKB_KEY_DOWN, lock);
   mkt_device_feed_key (self, XKB_KEY_UP, lock);
 }
@@ -116,18 +118,18 @@ show_key_log (MktDevice              *self,
 
 #define MODE_IS_ACTIVE(state, name) xkb_state_mod_name_is_active (state, name, \
                                                                   XKB_STATE_MODS_EFFECTIVE)
-  if (MODE_IS_ACTIVE (self->xkb_state, "Super"))
+  if (MODE_IS_ACTIVE (self->xkb_us_state, "Super"))
     g_string_append (keys, "Super + ");
-  if (MODE_IS_ACTIVE (self->xkb_state, XKB_MOD_NAME_CTRL) &&
+  if (MODE_IS_ACTIVE (self->xkb_us_state, XKB_MOD_NAME_CTRL) &&
       (sym != XKB_KEY_Control_L &&
        sym != XKB_KEY_Control_R))
     g_string_append (keys, "Control + ");
-  if ((MODE_IS_ACTIVE (self->xkb_state, XKB_MOD_NAME_ALT) ||
-       MODE_IS_ACTIVE (self->xkb_state, "Meta")) &&
+  if ((MODE_IS_ACTIVE (self->xkb_us_state, XKB_MOD_NAME_ALT) ||
+       MODE_IS_ACTIVE (self->xkb_us_state, "Meta")) &&
       (sym != XKB_KEY_Alt_L &&
        sym != XKB_KEY_Alt_R))
     g_string_append (keys, "Alt + ");
-  if (MODE_IS_ACTIVE (self->xkb_state, XKB_MOD_NAME_SHIFT) &&
+  if (MODE_IS_ACTIVE (self->xkb_us_state, XKB_MOD_NAME_SHIFT) &&
       (sym == XKB_KEY_Shift_L &&
        sym == XKB_KEY_Shift_R))
     g_string_append (keys, "Shift + ");
@@ -293,8 +295,8 @@ mkt_device_init (MktDevice *self)
   names.options = "";
 
   context = xkb_context_new (0);
-  self->xkb_keymap = xkb_keymap_new_from_names (context, &names, 0);
-  self->xkb_state = xkb_state_new (self->xkb_keymap);
+  self->xkb_us_keymap = xkb_keymap_new_from_names (context, &names, 0);
+  self->xkb_us_state = xkb_state_new (self->xkb_us_keymap);
   self->index_sym = XKB_KEY_0;
 
   xkb_context_unref (context);
@@ -347,8 +349,8 @@ mkt_device_reset (MktDevice *self,
   g_return_if_fail (MKT_IS_DEVICE (self));
 
   g_clear_handle_id (&self->repeat_id, g_source_remove);
-  xkb_state = g_steal_pointer (&self->xkb_state);
-  self->xkb_state = xkb_state_new (self->xkb_keymap);
+  xkb_state = g_steal_pointer (&self->xkb_us_state);
+  self->xkb_us_state = xkb_state_new (self->xkb_us_keymap);
 
   g_debug ("Resetting device %p, keep-locks: %d", self, !!keep_locks);
 
@@ -410,11 +412,30 @@ mkt_device_feed_key (MktDevice *self,
                      guint32    direction, /* enum xkb_key_direction  */
                      guint32    key)       /* xkb_keycode_t */
 {
-  xkb_keysym_t sym;
+  struct xkb_keymap *xkb_keymap;
+  struct xkb_state *xkb_state;
+  xkb_keysym_t sym_us, sym;
+  GdkModifierType modifier;
 
   g_return_val_if_fail (MKT_IS_DEVICE (self), 0);
 
-  sym = xkb_state_key_get_one_sym (self->xkb_state, key + 8);
+  sym_us = xkb_state_key_get_one_sym (self->xkb_us_state, key + 8);
+
+  if (self->xkb_state)
+    sym = xkb_state_key_get_one_sym (self->xkb_state, key + 8);
+  else
+    sym = sym_us;
+
+  if (self->xkb_state)
+    xkb_state = self->xkb_state;
+  else
+    xkb_state = self->xkb_us_state;
+
+  if (self->xkb_keymap)
+    xkb_keymap = self->xkb_keymap;
+  else
+    xkb_keymap = self->xkb_us_keymap;
+
   g_clear_handle_id (&self->repeat_id, g_source_remove);
 
   if (mkt_device_get_enabled (self))
@@ -427,7 +448,7 @@ mkt_device_feed_key (MktDevice *self,
       emit_event (self, direction, sym);
 
       if (direction == XKB_KEY_DOWN &&
-          xkb_keymap_key_repeats (self->xkb_keymap, key + 8))
+          xkb_keymap_key_repeats (xkb_keymap, key + 8))
         self->repeat_id = g_timeout_add_full (G_PRIORITY_HIGH,
                                               INITIAL_REPEAT_TIMEOUT,
                                               initial_repeat_key, task,
@@ -436,14 +457,14 @@ mkt_device_feed_key (MktDevice *self,
 
   if (direction == XKB_KEY_DOWN &&
       !mkt_device_get_enabled (self) &&
-      (sym == self->index_sym||
-       sym == self->index_sym - XKB_KEY_0 + XKB_KEY_KP_0))
+      (sym_us == self->index_sym||
+       sym_us == self->index_sym - XKB_KEY_0 + XKB_KEY_KP_0))
     {
       if (!get_active_modifiers (self))
         mkt_device_set_enabled (self, TRUE);
     }
 
-  xkb_state_update_key (self->xkb_state, key + 8, direction);
+  xkb_state_update_key (xkb_state, key + 8, direction);
 
   if (mkt_log_get_verbosity () > 3)
     show_key_log (self, sym, direction, FALSE);
@@ -460,11 +481,11 @@ mkt_device_update_leds (MktDevice *self)
   if (!self->device)
     return;
 
-  if (xkb_state_led_name_is_active (self->xkb_state, XKB_LED_NAME_CAPS))
+  if (xkb_state_led_name_is_active (self->xkb_us_state, XKB_LED_NAME_CAPS))
     leds |= LIBINPUT_LED_CAPS_LOCK;
-  if (xkb_state_led_name_is_active (self->xkb_state, XKB_LED_NAME_NUM))
+  if (xkb_state_led_name_is_active (self->xkb_us_state, XKB_LED_NAME_NUM))
     leds |= LIBINPUT_LED_NUM_LOCK;
-  if (xkb_state_led_name_is_active (self->xkb_state, XKB_LED_NAME_SCROLL))
+  if (xkb_state_led_name_is_active (self->xkb_us_state, XKB_LED_NAME_SCROLL))
     leds |= LIBINPUT_LED_SCROLL_LOCK;
 
   libinput_device_led_update (self->device, leds);
@@ -474,4 +495,29 @@ mkt_device_update_leds (MktDevice *self)
                  !!(leds & LIBINPUT_LED_CAPS_LOCK),
                  !!(leds & LIBINPUT_LED_NUM_LOCK),
                  !!(leds & LIBINPUT_LED_SCROLL_LOCK));
+}
+
+void
+mkt_device_set_layout (MktDevice  *self,
+                       const char *layout)
+{
+  g_auto(GStrv) strv = NULL;
+  struct xkb_context *context;
+  struct xkb_rule_names names;
+
+  g_return_if_fail (MKT_IS_DEVICE (self));
+  g_return_if_fail (layout && *layout);
+
+  strv = g_strsplit (layout, "+", 2);
+  names.rules = "evdev";
+  names.model = "pc105";
+  names.layout = strv[0];
+  names.variant = strv[1] ?: "";
+  names.options = "";
+
+  context = xkb_context_new (0);
+  self->xkb_keymap = xkb_keymap_new_from_names (context, &names, 0);
+  self->xkb_state = xkb_state_new (self->xkb_keymap);
+
+  xkb_context_unref (context);
 }
