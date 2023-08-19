@@ -182,7 +182,7 @@ handle_keyboard_event (MktController         *self,
     {
       device = mkt_device_new (dev);
       g_list_store_append (self->full_device_list, device);
-      /* Update LED status us we sets Num Lock when device is added */
+      /* Update LED status as we sets Num Lock when device is added */
       g_timeout_add (1, update_keyboard_leds, g_object_ref (self));
       g_object_unref (device);
     }
