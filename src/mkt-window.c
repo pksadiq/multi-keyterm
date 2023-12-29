@@ -58,6 +58,15 @@ struct _MktWindow
 
 G_DEFINE_TYPE (MktWindow, mkt_window, ADW_TYPE_APPLICATION_WINDOW)
 
+static gboolean
+window_key_event_cb (MktWindow *self)
+{
+  g_assert (MKT_IS_WINDOW (self));
+
+  /* Simply swallow the key press/release */
+  /* We handle them by other means where appropriate */
+  return TRUE;
+}
 
 static void
 controller_failed_cb (MktWindow *self)
@@ -233,12 +242,28 @@ mkt_window_class_init (MktWindowClass *klass)
 static void
 mkt_window_init (MktWindow *self)
 {
+  GtkEventController *event_controller;
   AdwStyleManager *style_manager;
 
   gtk_widget_init_template (GTK_WIDGET (self));
 
   style_manager = adw_style_manager_get_default ();
   adw_style_manager_set_color_scheme (style_manager, ADW_COLOR_SCHEME_FORCE_DARK);
+
+  event_controller = gtk_event_controller_key_new ();
+  gtk_widget_add_controller (GTK_WIDGET (self), event_controller);
+  gtk_event_controller_set_propagation_phase (event_controller, GTK_PHASE_CAPTURE);
+
+  g_signal_connect_object (event_controller,
+                           "key-pressed",
+                           G_CALLBACK (window_key_event_cb),
+                           self,
+                           G_CONNECT_SWAPPED);
+    g_signal_connect_object (event_controller,
+                           "key-released",
+                           G_CALLBACK (window_key_event_cb),
+                           self,
+                           G_CONNECT_SWAPPED);
 }
 
 GtkWidget *
