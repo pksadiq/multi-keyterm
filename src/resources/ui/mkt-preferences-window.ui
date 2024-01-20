@@ -11,25 +11,18 @@
             <property name="title" translatable="yes">Font</property>
 
             <child>
-              <object class="AdwActionRow" id="use_system_font_row">
-                <property name="title" translatable="yes">Use System Font</property>
-                <property name="activatable-widget">use_system_font_switch</property>
-                <child type="suffix">
-                  <object class="GtkSwitch" id="use_system_font_switch">
-                    <property name="halign">center</property>
-                    <property name="valign">center</property>
-                    <signal name="notify::active" handler="use_system_font_changed_cb" swapped="yes"/>
+              <object class="AdwExpanderRow" id="use_custom_font_row">
+                <property name="title" translatable="yes">Use Custom Font</property>
+                <property name="subtitle" translatable="yes">Set custom terminal font</property>
+                <property name="show-enable-switch">1</property>
+                <signal name="notify::enable-expansion" handler="use_custom_font_changed_cb" swapped="yes"/>
+                <child>
+                  <object class="AdwActionRow" id="terminal_font_row">
+                    <property name="title" translatable="yes">Terminal Font</property>
+                    <property name="activatable">1</property>
+                    <signal name="activated" handler="terminal_font_row_activated_cb" swapped="yes"/>
                   </object>
                 </child>
-              </object>
-            </child>
-
-            <child>
-              <object class="AdwActionRow" id="terminal_font_row">
-                <property name="sensitive" bind-source="use_system_font_switch" bind-property="active" bind-flags="invert-boolean|sync-create"/>
-                <property name="title" translatable="yes">Terminal Font</property>
-                <property name="activatable">1</property>
-                <signal name="activated" handler="terminal_font_row_activated_cb" swapped="yes"/>
               </object>
             </child>
 

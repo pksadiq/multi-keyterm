@@ -36,8 +36,7 @@ struct _MktPreferencesWindow
 {
   AdwPreferencesWindow  parent_instance;
 
-  GtkWidget            *use_system_font_row;
-  GtkWidget            *use_system_font_switch;
+  GtkWidget            *use_custom_font_row;
   GtkWidget            *terminal_font_row;
   GtkWidget            *default_zoom_row;
 
@@ -66,7 +65,8 @@ settings_font_changed_cb (MktPreferencesWindow *self,
   font = mkt_settings_get_font (settings);
 
   adw_action_row_set_subtitle (ADW_ACTION_ROW (self->terminal_font_row), font ?: "");
-  gtk_switch_set_active (GTK_SWITCH (self->use_system_font_switch), use_system_font);
+  adw_expander_row_set_enable_expansion (ADW_EXPANDER_ROW (self->use_custom_font_row),
+                                         !use_system_font);
   mkt_settings_save (self->settings);
 }
 
@@ -102,14 +102,14 @@ preferences_window_set_settings (MktPreferencesWindow *self,
 }
 
 static void
-use_system_font_changed_cb (MktPreferencesWindow *self)
+use_custom_font_changed_cb (MktPreferencesWindow *self)
 {
   const char *font = NULL;
   gboolean active;
 
   g_assert (MKT_IS_PREFERENCES_WINDOW (self));
 
-  active = gtk_switch_get_active (GTK_SWITCH (self->use_system_font_switch));
+  active = !adw_expander_row_get_enable_expansion (ADW_EXPANDER_ROW (self->use_custom_font_row));
   mkt_settings_set_use_system_font (self->settings, active);
 
   font = mkt_settings_get_font (self->settings);
@@ -170,8 +170,7 @@ mkt_preferences_window_class_init (MktPreferencesWindowClass *klass)
                                                "/org/sadiqpk/multi-keyterm/"
                                                "ui/mkt-preferences-window.ui");
 
-  gtk_widget_class_bind_template_child (widget_class, MktPreferencesWindow, use_system_font_row);
-  gtk_widget_class_bind_template_child (widget_class, MktPreferencesWindow, use_system_font_switch);
+  gtk_widget_class_bind_template_child (widget_class, MktPreferencesWindow, use_custom_font_row);
   gtk_widget_class_bind_template_child (widget_class, MktPreferencesWindow, terminal_font_row);
   gtk_widget_class_bind_template_child (widget_class, MktPreferencesWindow, default_zoom_row);
 
@@ -181,7 +180,7 @@ mkt_preferences_window_class_init (MktPreferencesWindowClass *klass)
 
   gtk_widget_class_bind_template_child (widget_class, MktPreferencesWindow, font_chooser_dialog);
 
-  gtk_widget_class_bind_template_callback (widget_class, use_system_font_changed_cb);
+  gtk_widget_class_bind_template_callback (widget_class, use_custom_font_changed_cb);
   gtk_widget_class_bind_template_callback (widget_class, terminal_font_row_activated_cb);
   gtk_widget_class_bind_template_callback (widget_class, font_chooser_response_cb);
 }
