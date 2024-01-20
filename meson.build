@@ -98,22 +98,10 @@ if cc.get_id() == 'msvc'
           ' Please use MinGW or native GNU/Linux')
 endif
 
-libadwaita_dep = dependency(
-  'libadwaita-1',
-  version: '>= 1.2.beta',
-  fallback: ['libadwaita', 'libadwaita_dep'],
-  default_options: [
-    'examples=false',
-    'introspection=disabled',
-    'tests=false',
-    'vapi=false',
-  ]
-)
-
 pkg_dep = [
   dependency('glib-2.0', version: '>= 2.44.0'),
-  dependency('gtk4', version: '>= 4.6'),
-  libadwaita_dep,
+  dependency('gtk4', version: '>= 4.10'),
+  dependency('libadwaita-1', version: '>= 1.4'),
   dependency('vte-2.91-gtk4', version: '>= 0.70.0'),
   dependency('libudev'),
   dependency('libinput'),
