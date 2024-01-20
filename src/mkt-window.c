@@ -36,6 +36,7 @@
 #include "mkt-controller.h"
 #include "mkt-terminal.h"
 #include "mkt-preferences-window.h"
+#include "mkt-settings.h"
 #include "mkt-window.h"
 #include "mkt-log.h"
 
@@ -95,6 +96,41 @@ terminal_new (MktKeyboard *keyboard,
 }
 
 static void
+window_update_terminal_style (MktWindow *self)
+{
+  GListModel *keyboard_list;
+  guint n_items, children_count = 2;
+  bool h_split;
+
+  g_assert (MKT_IS_WINDOW(self));
+
+  keyboard_list = mkt_controller_get_keyboard_list (self->controller);
+  n_items = g_list_model_get_n_items (keyboard_list);
+  h_split = mkt_settings_get_prefer_horizontal_split (self->settings);
+
+  if (n_items <= 1)
+    {
+      children_count = 1;
+    }
+  else if (h_split)
+    {
+      int term_height, height;
+
+      height = gtk_widget_get_height (self->terminal_grid);
+      term_height = mkt_settings_get_min_terminal_height (self->settings);
+
+      if (term_height * n_items <= height)
+        children_count = 1;
+    }
+
+  g_object_set (self->terminal_grid,
+                "min-children-per-line", children_count,
+                "max-children-per-line", children_count,
+                NULL);
+}
+
+
+static void
 keyboard_list_changed_cb (MktWindow *self)
 {
   GListModel *keyboard_list;
@@ -111,23 +147,7 @@ keyboard_list_changed_cb (MktWindow *self)
   else
     child = self->status_page;
 
-  /* We use homogeneous spacing for children.  So if we have
-   * only one child, half of the space is left free, so adjust
-   * accordingly.  We ignore the free spaces when we have more
-   * than 2 children.  A GtkGridView would be better here, but
-   * that's GTK4 only.
-   */
-  if (n_items == 1)
-    g_object_set (self->terminal_grid,
-                  "min-children-per-line", 1,
-                  "max-children-per-line", 1,
-                  NULL);
-  else
-    g_object_set (self->terminal_grid,
-                  "min-children-per-line", 2,
-                  "max-children-per-line", 2,
-                  NULL);
-
+  window_update_terminal_style (self);
   gtk_stack_set_visible_child (GTK_STACK (self->main_stack), child);
 }
 
@@ -202,6 +222,20 @@ window_focus_changed_cb (MktWindow *self)
 }
 
 static void
+mkt_window_map (GtkWidget *widget)
+{
+  GdkSurface *surface;
+
+  GTK_WIDGET_CLASS (mkt_window_parent_class)->map (widget);
+
+  surface = gtk_native_get_surface (GTK_NATIVE (widget));
+  g_signal_connect_object (surface,
+                           "notify::height",
+                           G_CALLBACK (window_update_terminal_style),
+                           widget, G_CONNECT_SWAPPED);
+}
+
+static void
 mkt_window_finalize (GObject *object)
 {
   MktWindow *self = (MktWindow *)object;
@@ -219,6 +253,8 @@ mkt_window_class_init (MktWindowClass *klass)
   GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
 
   object_class->finalize = mkt_window_finalize;
+
+  widget_class->map = mkt_window_map;
 
   gtk_widget_class_set_template_from_resource (widget_class,
                                                "/org/sadiqpk/multi-keyterm/"
@@ -297,6 +333,20 @@ mkt_window_new (GtkApplication *application,
                            G_CALLBACK (keyboard_list_changed_cb),
                            self, G_CONNECT_SWAPPED);
   keyboard_list_changed_cb (self);
+
+  g_signal_connect_object (self->settings,
+                           "notify::prefer-horizontal-terminal-split",
+                           G_CALLBACK (window_update_terminal_style),
+                           self, G_CONNECT_SWAPPED);
+  g_signal_connect_object (self->settings,
+                           "notify::minimum-terminal-height",
+                           G_CALLBACK (window_update_terminal_style),
+                           self, G_CONNECT_SWAPPED);
+  g_signal_connect_object (keyboard_list,
+                           "items-changed",
+                           G_CALLBACK (window_update_terminal_style),
+                           self, G_CONNECT_SWAPPED);
+  window_update_terminal_style (self);
 
   return GTK_WIDGET (self);
 }
