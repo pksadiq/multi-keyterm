@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include <gtk/gtk.h>
 
 G_BEGIN_DECLS
@@ -41,6 +42,10 @@ void         mkt_settings_set_use_system_font  (MktSettings *self,
 const char  *mkt_settings_get_font             (MktSettings *self);
 void         mkt_settings_set_font             (MktSettings *self,
                                                 const char  *font);
+bool         mkt_settings_expand_terminal_to_fit (MktSettings *self);
+double       mkt_settings_get_font_scale       (MktSettings *self);
+int          mkt_settings_get_min_terminal_height (MktSettings *self);
+bool         mkt_settings_get_prefer_horizontal_split (MktSettings *self);
 const char  *mkt_settings_get_kbd_layout       (MktSettings *self);
 
 G_END_DECLS

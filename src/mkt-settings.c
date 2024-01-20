@@ -50,6 +50,11 @@ struct _MktSettings
 
   char      *font;
   char      *keyboard_layout;
+
+  double     font_scale;
+  int        min_terminal_height;
+  bool       prefer_horizontal_split;
+  bool       expand_to_fit;
   gboolean   first_run;
   gboolean   use_system_font;
 };
@@ -58,11 +63,21 @@ G_DEFINE_TYPE (MktSettings, mkt_settings, G_TYPE_OBJECT)
 
 
 enum {
+  PROP_0,
+  PROP_EXPAND_TO_FIT,
+  PROP_FONT_SCALE,
+  PROP_MINIMUM_TERMINAL_HEIGHT,
+  PROP_PREFER_HORIZONTAL_TERMINAL_SPLIT,
+  N_PROPS
+};
+
+enum {
   FONT_CHANGED,
   KBD_LAYOUT_CHANGED,
   N_SIGNALS
 };
 
+static GParamSpec *properties[N_PROPS];
 static guint signals[N_SIGNALS];
 
 static void
@@ -95,6 +110,69 @@ settings_kbd_layout_changed_cb (MktSettings *self,
 }
 
 static void
+mkt_settings_get_property (GObject    *object,
+                           guint       prop_id,
+                           GValue     *value,
+                           GParamSpec *pspec)
+{
+  MktSettings *self = (MktSettings *)object;
+
+  switch (prop_id)
+    {
+    case PROP_EXPAND_TO_FIT:
+      g_value_set_boolean (value, self->expand_to_fit);
+      break;
+
+    case PROP_FONT_SCALE:
+      g_value_set_double (value, self->font_scale);
+      break;
+
+    case PROP_MINIMUM_TERMINAL_HEIGHT:
+      g_value_set_int (value, self->min_terminal_height);
+      break;
+
+    case PROP_PREFER_HORIZONTAL_TERMINAL_SPLIT:
+      g_value_set_boolean (value, self->prefer_horizontal_split);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    }
+}
+
+static void
+mkt_settings_set_property (GObject      *object,
+                           guint         prop_id,
+                           const GValue *value,
+                           GParamSpec   *pspec)
+{
+  MktSettings *self = (MktSettings *)object;
+
+  switch (prop_id)
+    {
+    case PROP_EXPAND_TO_FIT:
+      self->expand_to_fit= g_value_get_boolean (value);
+      break;
+
+    case PROP_FONT_SCALE:
+      self->font_scale = g_value_get_double (value);
+      g_signal_emit (self, signals[FONT_CHANGED], 0);
+      break;
+
+    case PROP_MINIMUM_TERMINAL_HEIGHT:
+      self->min_terminal_height = g_value_get_int (value);
+      break;
+
+    case PROP_PREFER_HORIZONTAL_TERMINAL_SPLIT:
+      self->prefer_horizontal_split = g_value_get_boolean (value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    }
+}
+
+static void
 mkt_settings_dispose (GObject *object)
 {
   MktSettings *self = (MktSettings *)object;
@@ -120,7 +198,39 @@ mkt_settings_class_init (MktSettingsClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
+  object_class->get_property = mkt_settings_get_property;
+  object_class->set_property = mkt_settings_set_property;
   object_class->dispose = mkt_settings_dispose;
+
+  properties[PROP_EXPAND_TO_FIT] =
+    g_param_spec_boolean ("expand-to-fit",
+                          "Expand new terminals if possible",
+                          "Whether to expand odd numbered terminals on vertical split",
+                          false,
+                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+  properties[PROP_FONT_SCALE] =
+    g_param_spec_double("font-scale",
+                        "Default Font Scale",
+                        "Terminal font scale set for Terminals on creation",
+                        1.0, 5.0, 1.0,
+                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+  properties[PROP_MINIMUM_TERMINAL_HEIGHT] =
+    g_param_spec_int ("minimum-terminal-height",
+                      "Minimum Terminal height",
+                      "Minimum Terminal height required per terminal when spliting terminals horizontally",
+                      100, 1000, 300,
+                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+  properties[PROP_PREFER_HORIZONTAL_TERMINAL_SPLIT] =
+    g_param_spec_boolean ("prefer-horizontal-terminal-split",
+                          "Prefer splitting terminals horizontally",
+                          "Whether to split each new terminal row by row",
+                          false,
+                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+  g_object_class_install_properties (object_class, N_PROPS, properties);
 
   signals [FONT_CHANGED] =
     g_signal_new ("font-changed",
@@ -144,6 +254,19 @@ mkt_settings_init (MktSettings *self)
   g_autofree char *version = NULL;
 
   self->settings = g_settings_new (PACKAGE_ID);
+
+  g_settings_bind (self->settings, "expand-to-fit",
+                   self, "expand-to-fit",
+                   G_SETTINGS_BIND_DEFAULT);
+  g_settings_bind (self->settings, "font-scale",
+                   self, "font-scale",
+                   G_SETTINGS_BIND_DEFAULT);
+  g_settings_bind (self->settings, "prefer-horizontal-terminal-split",
+                   self, "prefer-horizontal-terminal-split",
+                   G_SETTINGS_BIND_DEFAULT);
+  g_settings_bind (self->settings, "minimum-terminal-height",
+                   self, "minimum-terminal-height",
+                   G_SETTINGS_BIND_DEFAULT);
 
   version = g_settings_get_string (self->settings, "version");
 
@@ -302,6 +425,38 @@ mkt_settings_set_font (MktSettings *self,
   g_settings_set_string (self->settings, "font", font);
 
   g_signal_emit (self, signals[FONT_CHANGED], 0);
+}
+
+bool
+mkt_settings_expand_terminal_to_fit (MktSettings *self)
+{
+  g_return_val_if_fail (MKT_IS_SETTINGS (self), false);
+
+  return self->expand_to_fit;
+}
+
+double
+mkt_settings_get_font_scale (MktSettings *self)
+{
+  g_return_val_if_fail (MKT_IS_SETTINGS (self), 1.0);
+
+  return self->font_scale;
+}
+
+int
+mkt_settings_get_min_terminal_height (MktSettings *self)
+{
+  g_return_val_if_fail (MKT_IS_SETTINGS (self), 300);
+
+  return self->min_terminal_height;
+}
+
+bool
+mkt_settings_get_prefer_horizontal_split (MktSettings *self)
+{
+  g_return_val_if_fail (MKT_IS_SETTINGS (self), false);
+
+  return self->prefer_horizontal_split;
 }
 
 const char *

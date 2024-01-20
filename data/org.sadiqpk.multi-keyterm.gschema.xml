@@ -20,5 +20,31 @@
       <description>Font to use for Terminal</description>
     </key>
 
+    <key name="expand-to-fit" type="b">
+      <default>false</default>
+      <summary>Expand new terminals if possible</summary>
+      <description>Whether to expand odd numbered terminals on vertical split</description>
+    </key>
+
+    <key name="font-scale" type="d">
+      <range min="1.0" max="5.0"/>
+      <default>1.0</default>
+      <summary>Default Font Scale</summary>
+      <description>Terminal font scale set for Terminals on creation</description>
+    </key>
+
+    <key name="prefer-horizontal-terminal-split" type="b">
+      <default>false</default>
+      <summary>Prefer splitting terminals horizontally</summary>
+      <description>Whether to split each new terminal row by row</description>
+    </key>
+
+    <key name="minimum-terminal-height" type="i">
+      <range min="100" max="1000"/>
+      <default>300</default>
+      <summary>Minimum Terminal height</summary>
+      <description>Minimum Terminal height required per terminal when spliting terminals horizontally</description>
+    </key>
+
   </schema>
 </schemalist>
