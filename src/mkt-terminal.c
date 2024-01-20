@@ -88,7 +88,11 @@ keyboard_key_pressed_cb (MktTerminal  *self,
              key->keyval == GDK_KEY_KP_0) &&
             key->modifier == GDK_CONTROL_MASK))
     {
-      vte_terminal_set_font_scale (VTE_TERMINAL (self->terminal), self->default_scale);
+      double scale;
+
+      scale = mkt_settings_get_font_scale (self->settings);
+
+      vte_terminal_set_font_scale (VTE_TERMINAL (self->terminal), self->default_scale * scale);
     }
   else if (key->modifier == GDK_CONTROL_MASK &&
            toupper (key->keyval) >= 'A' && toupper (key->keyval) <= 'Z')
@@ -231,9 +235,11 @@ terminal_font_changed_cb (MktTerminal *self,
 {
   PangoFontDescription *font_desc = NULL;
   const char *font = NULL;
+  double scale;
 
   g_assert (MKT_IS_TERMINAL (self));
   g_assert (MKT_IS_SETTINGS (settings));
+
 
   font = mkt_settings_get_font (settings);
 
@@ -241,6 +247,9 @@ terminal_font_changed_cb (MktTerminal *self,
     font_desc = pango_font_description_from_string (font);
 
   vte_terminal_set_font (VTE_TERMINAL (self->terminal), font_desc);
+
+  scale = mkt_settings_get_font_scale (self->settings);
+  vte_terminal_set_font_scale (VTE_TERMINAL (self->terminal), self->default_scale * scale);
 }
 
 static void
