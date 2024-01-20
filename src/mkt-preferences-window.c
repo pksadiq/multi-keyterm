@@ -39,6 +39,12 @@ struct _MktPreferencesWindow
   GtkWidget            *use_system_font_row;
   GtkWidget            *use_system_font_switch;
   GtkWidget            *terminal_font_row;
+  GtkWidget            *default_zoom_row;
+
+  GtkWidget            *expand_to_fit_row;
+  GtkWidget            *horizontal_split_row;
+  GtkWidget            *min_height_row;
+
   GtkWidget            *font_chooser_dialog;
 
   MktSettings          *settings;
@@ -77,6 +83,21 @@ preferences_window_set_settings (MktPreferencesWindow *self,
   g_signal_connect_object (self->settings, "font-changed",
                            G_CALLBACK (settings_font_changed_cb),
                            self, G_CONNECT_SWAPPED);
+
+  g_object_bind_property (self->settings, "font-scale",
+                          self->default_zoom_row, "value",
+                          G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+
+  g_object_bind_property (self->settings, "expand-to-fit",
+                          self->expand_to_fit_row, "active",
+                          G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+  g_object_bind_property (self->settings, "prefer-horizontal-terminal-split",
+                          self->horizontal_split_row, "enable-expansion",
+                          G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+  g_object_bind_property (self->settings, "minimum-terminal-height",
+                          self->min_height_row, "value",
+                          G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+
   settings_font_changed_cb (self, self->settings);
 }
 
@@ -152,6 +173,12 @@ mkt_preferences_window_class_init (MktPreferencesWindowClass *klass)
   gtk_widget_class_bind_template_child (widget_class, MktPreferencesWindow, use_system_font_row);
   gtk_widget_class_bind_template_child (widget_class, MktPreferencesWindow, use_system_font_switch);
   gtk_widget_class_bind_template_child (widget_class, MktPreferencesWindow, terminal_font_row);
+  gtk_widget_class_bind_template_child (widget_class, MktPreferencesWindow, default_zoom_row);
+
+  gtk_widget_class_bind_template_child (widget_class, MktPreferencesWindow, expand_to_fit_row);
+  gtk_widget_class_bind_template_child (widget_class, MktPreferencesWindow, horizontal_split_row);
+  gtk_widget_class_bind_template_child (widget_class, MktPreferencesWindow, min_height_row);
+
   gtk_widget_class_bind_template_child (widget_class, MktPreferencesWindow, font_chooser_dialog);
 
   gtk_widget_class_bind_template_callback (widget_class, use_system_font_changed_cb);

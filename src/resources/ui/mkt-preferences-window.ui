@@ -33,8 +33,65 @@
               </object>
             </child>
 
+            <child>
+              <object class="AdwSpinRow" id="default_zoom_row">
+                <property name="title" translatable="yes">Default Font Scale</property>
+                <property name="subtitle" translatable="yes">Terminal font scale set for Terminals on creation</property>
+                <property name="digits">2</property>
+                <property name="adjustment">
+                  <object class="GtkAdjustment">
+                    <property name="lower">1.0</property>
+                    <property name="upper">5.0</property>
+                    <property name="value">1.0</property>
+                    <property name="page-increment">1.0</property>
+                    <property name="step-increment">0.05</property>
+                  </object>
+                </property>
+              </object>
+            </child>
+
           </object> <!-- ./AdwPreferencesGroup -->
         </child>
+
+        <child>
+          <object class="AdwPreferencesGroup">
+            <property name="title" translatable="yes">Terminal Settings</property>
+
+            <!-- todo: this doesn't work right now -->
+            <child>
+              <object class="AdwSwitchRow" id="expand_to_fit_row">
+                <property name="visible">0</property>
+                <property name="title" translatable="yes">Expand new terminals if possible</property>
+                <property name="subtitle" translatable="yes">Whether to expand odd numbered terminals on vertical split</property>
+              </object>
+            </child>
+
+            <child>
+              <object class="AdwExpanderRow" id="horizontal_split_row">
+                <property name="title" translatable="yes">Split horizontally</property>
+                <property name="subtitle" translatable="yes">Enable to split each new terminal row by row</property>
+                <property name="show-enable-switch">1</property>
+                <child>
+                  <object class="AdwSpinRow" id="min_height_row">
+                    <property name="title" translatable="yes">Minimum Terminal Height</property>
+                    <property name="subtitle" translatable="yes">Terminal shall be split vertically if minimum height can't be attained after split</property>
+                    <property name="adjustment">
+                      <object class="GtkAdjustment">
+                        <property name="lower">100</property>
+                        <property name="upper">800</property>
+                        <property name="value">300</property>
+                        <property name="page-increment">100</property>
+                        <property name="step-increment">10</property>
+                      </object>
+                    </property>
+                  </object>
+                </child>
+              </object>
+            </child>
+
+          </object> <!-- ./AdwPreferencesGroup -->
+        </child>
+
       </object>
     </child>
 
