@@ -45,13 +45,14 @@ Install required dependencies.
 
 On Debian and derivatives (like Ubuntu):
 * `sudo apt install build-essential meson libgtk-4-dev xsltproc \
-  appstream-util docbook-xsl libvte-2.91-dev libinput-dev \
-  libxkbcommon-dev libudev-dev gettext appstream`libadwaita-1-dev
+  appstream-util docbook-xsl libvte-2.91-gtk4-dev libinput-dev \
+  libxkbcommon-dev libudev-dev gettext appstream libadwaita-1-dev \
+  desktop-file-utils`
 
 On Fedora and derivatives:
-* `sudo dnf install @c-development @development-tools vte291-devel \
+* `sudo dnf install @c-development @development-tools vte291-gtk4-devel \
   gettext-devel gtk4-devel meson desktop-file-utils libinput-devel \
-  libxkbcommon-devel systemd-devel docbook-style-xsl libxslt`
+  libxkbcommon-devel systemd-devel docbook-style-xsl libxslt desktop-file-utils`
 
 `meson` is used as the build system.  Run the following to build:
 * `meson build --prefix=/usr`
