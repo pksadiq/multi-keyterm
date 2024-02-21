@@ -16,7 +16,7 @@
         <!-- Headerbar -->
         <child>
           <object class="GtkHeaderBar">
-            <property name="show-title-buttons">0</property>
+            <property name="show-title-buttons">1</property>
             <property name="visible" bind-source="MktWindow" bind-property="fullscreened" bind-flags="invert-boolean|sync-create"/>
 
             <!-- Toggle Full-Screen Button -->
@@ -24,34 +24,8 @@
               <object class="GtkButton">
                 <property name="can-focus">0</property>
                 <property name="focus-on-click">0</property>
+                <property name="icon-name">view-fullscreen-symbolic</property>
                 <signal name="clicked" handler="mkt_window_fullscreen_clicked_cb" swapped="yes"/>
-                <child>
-                  <object class="GtkImage">
-                    <property name="icon-name">view-fullscreen-symbolic</property>
-                    <property name="width-request">24</property>
-                    <property name="height-request">24</property>
-                  </object>
-                </child>
-              </object>
-            </child>
-
-            <!-- Close Button -->
-            <child type="end">
-              <object class="GtkButton">
-                <property name="can-focus">0</property>
-                <property name="focus-on-click">0</property>
-                <signal name="clicked" handler="gtk_window_close" swapped="yes"/>
-                <style>
-                  <class name="circular"/>
-                  <class name="flat"/>
-                </style>
-                <child>
-                  <object class="GtkImage">
-                    <property name="icon-name">window-close-symbolic</property>
-                    <property name="width-request">24</property>
-                    <property name="height-request">24</property>
-                  </object>
-                </child>
               </object>
             </child>
 
@@ -95,17 +69,11 @@
                 <property name="child">
                   <object class="GtkButton">
                     <property name="opacity">0.7</property>
+                    <property name="icon-name">view-fullscreen-symbolic</property>
                     <signal name="clicked" handler="mkt_window_fullscreen_clicked_cb" swapped="yes"/>
                     <style>
                       <class name="osd"/>
                     </style>
-                    <child>
-                      <object class="GtkImage">
-                        <property name="icon-name">view-fullscreen-symbolic</property>
-                        <property name="width-request">24</property>
-                        <property name="height-request">24</property>
-                      </object>
-                    </child>
                   </object>
                 </property>
               </object>
